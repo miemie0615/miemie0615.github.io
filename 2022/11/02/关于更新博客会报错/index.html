@@ -14,7 +14,7 @@
 <meta property="og:description" content="在编译器里面更新完自己的代码之后，在进行上传会报错。一开始我觉得是我弄了什么不改动的才会给我提示“spawn”错误。后来在CSDN里面看别人给的攻略才弄明白。我自己理解的就是上传Git，在终端输入命令是有顺序的。主要用到的就是： hexo s123hexo server的缩写我的理解就是启动服务器用于预览写的内容，默认的地址都是：http:&#x2F;&#x2F;localhost:4000&#x2F;（不想要这个默认地址也是">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2022-11-02T15:15:37.274Z">
-<meta property="article:modified_time" content="2022-11-02T16:16:09.993Z">
+<meta property="article:modified_time" content="2022-11-02T16:20:25.049Z">
 <meta property="article:author" content="John Doe">
 <meta name="twitter:card" content="summary">
   
@@ -101,11 +101,11 @@
 <h2 id="hexo-g"><a href="#hexo-g" class="headerlink" title="hexo g"></a><strong>hexo g</strong></h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">g的缩写是generate（生成），这个就是可以直译，就是生成之前运行hexo clean的时候清理掉的网站静态文件，以及手动部署网站。</span><br></pre></td></tr></table></figure>
 <h2 id="hexo-d"><a href="#hexo-d" class="headerlink" title="hexo d"></a><strong>hexo d</strong></h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">d的缩写是deploy(部署)，是自动生成网站静态文件，并且部署到你设定的仓库</span><br></pre></td></tr></table></figure>
 <h2 id="命令使用顺序是"><a href="#命令使用顺序是" class="headerlink" title="命令使用顺序是"></a><strong>命令使用顺序是</strong></h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">在写博客的时候就打开终端输入hexo s（窗口小化不要关闭），写完了博客按Ctrl+s保存。然后打开终端按ctrl+c结束hexo s再提示good bye之后输入hexo clean等待运行并且结束，再运行hexo g等待运行结束，再输入一遍hexo s等待给你的本地服务器访问地址复制浏览器打开（git终端里粘贴快捷键是shift+ins，复制快捷键是ctrl+ins）查看自己写的没错误就在输入hexo d就会更新你的git库啦。由于服务器在国外所以传输需要时间等待，我知道你很急，但你先别急，一会你会更急。</span><br></pre></td></tr></table></figure>
-<h2 id="如果以上都不行那就按我接下来说的做"><a href="#如果以上都不行那就按我接下来说的做" class="headerlink" title="如果以上都不行那就按我接下来说的做"></a>如果以上都不行那就按我接下来说的做</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">按win+r键输入cmd然后回车，在打开的Windows终端输入(set GIT_SSL_NO_VERIFY=true git clone)</span><br><span class="line">再打开git终端输入（git config --global http.sslVerify false）</span><br><span class="line">接着输入</span><br><span class="line">hexo clean</span><br><span class="line">hexo g</span><br><span class="line">hexo s</span><br><span class="line">hexo d</span><br><span class="line">如果还不行就找个大佬，我也是小白。</span><br></pre></td></tr></table></figure>
+<h2 id="如果以上都不行那就按我接下来说的做"><a href="#如果以上都不行那就按我接下来说的做" class="headerlink" title="如果以上都不行那就按我接下来说的做"></a>如果以上都不行那就按我接下来说的做</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">按win+r键输入cmd然后回车，在打开的Windows终端输入(set GIT_SSL_NO_VERIFY=true git clone)</span><br><span class="line">再打开git终端输入（git config --global http.sslVerify false）</span><br><span class="line">接着输入</span><br><span class="line">hexo clean</span><br><span class="line">hexo g</span><br><span class="line">hexo d</span><br><span class="line">如果还不行就找个大佬，我也是小白。</span><br></pre></td></tr></table></figure>
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://example.com/2022/11/02/%E5%85%B3%E4%BA%8E%E6%9B%B4%E6%96%B0%E5%8D%9A%E5%AE%A2%E4%BC%9A%E6%8A%A5%E9%94%99/" data-id="cl9zuhabg0001nwv48al9hh75" data-title="关于更新博客上传报错" class="article-share-link">Share</a>
+      <a data-url="http://example.com/2022/11/02/%E5%85%B3%E4%BA%8E%E6%9B%B4%E6%96%B0%E5%8D%9A%E5%AE%A2%E4%BC%9A%E6%8A%A5%E9%94%99/" data-id="cl9zui9pg0001mkv44nh57ix2" data-title="关于更新博客上传报错" class="article-share-link">Share</a>
       
       
       
