@@ -182,7 +182,7 @@
   const loadValine = async () => {
     if (typeof Valine === 'function') initValine()
     else {
-      await getScript('/themes/butterfly/source/js/Valine.min.js')
+      await getScript('https://cdn.jsdelivr.net/npm/valine@1.5.1/dist/Valine.min.js')
       initValine()
     }
   }
