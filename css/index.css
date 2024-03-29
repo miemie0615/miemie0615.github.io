@@ -4362,6 +4362,12 @@ h1.page-title + .tag-cloud-list {
 #waline-wrap .wl-comment-actions > button:not(last-child) {
   padding-right: 4px;
 }
+#vcomment textarea {
+  background: url("https://gitee.com/cungudafa/source/raw/master/img/gif/Sitich/Sitich30.gif") 100% 100% no-repeat;
+}
+#vcomment textarea:focus {
+  background-image: none;
+}
 .fireworks {
   position: fixed;
   top: 0;
