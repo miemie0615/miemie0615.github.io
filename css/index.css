@@ -3273,13 +3273,6 @@ figure.highlight pre .javascript .function {
 #post-comment.move .comment-wrap > div:last-child {
   display: block;
 }
-#footer {
-  position: relative;
-  background-color: #49b1f5;
-  background-attachment: scroll;
-  background-position: bottom;
-  background-size: cover;
-}
 #footer-wrap {
   position: relative;
   padding: 40px 20px;
