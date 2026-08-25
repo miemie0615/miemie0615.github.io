@@ -109,8 +109,17 @@ const rssHref = getRelativeLocaleUrl(
         const root = document.firstElementChild;
         root?.setAttribute("data-theme", theme);
         root?.classList.toggle("dark", theme === "dark");
+
+        // 同步应用国风配色（data-palette），避免刷新时先闪默认色再变。
+        const palette = localStorage.getItem("palette") ?? "";
+        if (palette) {
+          root?.setAttribute("data-palette", palette);
+        } else {
+          root?.removeAttribute("data-palette");
+        }
+
         // Expose value so theme.ts can skip re-detection.
-        window.__theme = { value: theme };
+        window.__theme = { value: theme, palette: palette };
       })();
     </script>
 

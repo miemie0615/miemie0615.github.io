@@ -59,6 +59,7 @@ export default {
     openMenu: "Open menu",
     closeMenu: "Close menu",
     toggleTheme: "Toggle theme",
+    togglePalette: "切换配色",
     searchPlaceholder: "Search posts...",
     noResults: "No results found",
     goToPreviousPage: "Go to previous page",

@@ -1,5 +1,6 @@
 ---
 import { type CollectionEntry, getCollection, render } from "astro:content";
+import { Image } from "astro:assets";
 import PostLayout from "@/layouts/PostLayout.astro";
 import Header from "@/components/Header.astro";
 import Footer from "@/components/Footer.astro";
@@ -71,7 +72,19 @@ const {
   timezone,
   tags,
   hideEditPost,
+  heroImage,
 } = post.data;
+
+// 封面图可能是 Astro 优化后的 ImageMetadata 对象，也可能是字符串 URL（远程图）。
+// 对象走 <Image> 组件自动转 WebP + 多尺寸；字符串走原生 <img> 懒加载。
+const isHeroMeta =
+  heroImage != null && typeof heroImage === "object" && "src" in heroImage;
+const heroSrc =
+  typeof heroImage === "string"
+    ? heroImage
+    : isHeroMeta
+      ? (heroImage as ImageMetadata).src
+      : undefined;
 
 const { Content } = await render(post);
 
@@ -142,10 +155,34 @@ const ogImage = ogImageUrl
         "prose-pre:bg-(--shiki-light-bg) dark:prose-pre:bg-(--shiki-dark-bg)",
       ]}
     >
+      {
+        /* 文章封面大图：轻微圆角 + 细浅边框；不套 <a>，交给正文灯箱脚本自动
+           挂载放大预览。ImageMetadata 走 <Image> 自动转 WebP + 响应式多尺寸。 */
+        heroImage && isHeroMeta && (
+          <Image
+            src={heroImage as ImageMetadata}
+            alt={title}
+            widths={[640, 1024, 1600]}
+            sizes="(max-width: 768px) 100vw, 768px"
+            class="border-border mb-6 aspect-video w-full rounded-lg border object-cover"
+          />
+        )
+      }
+      {
+        heroImage && !isHeroMeta && heroSrc && (
+          <img
+            src={heroSrc}
+            alt={title}
+            loading="eager"
+            decoding="async"
+            class="border-border mb-6 aspect-video w-full rounded-lg border object-cover"
+          />
+        )
+      }
       <Content />
     </article>
 
-    <hr class="my-8 border-dashed" />
+    <hr class="ink-divider my-8" />
 
     <EditPost class="sm:hidden" {hideEditPost} {post} />
 
@@ -157,7 +194,7 @@ const ogImage = ogImageUrl
 
     <ShareLinks />
 
-    <hr class="my-8 border-dashed" />
+    <hr class="ink-divider my-8" />
 
     <AdjacentPostNav {prevPost} {nextPost} />
   </main>

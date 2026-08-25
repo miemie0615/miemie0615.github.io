@@ -37,3 +37,141 @@
 :target {
   scroll-margin-block: 1rem;
 }
+
+/* ============================================================
+   国风宣纸底纹（纯内联 SVG，不加载外部图片，几乎不影响加载速度）
+   ------------------------------------------------------------
+   用极低透明度的纤维点纹 + 淡云纹叠在页面背景上营造宣纸质感。
+   浅色系（默认/宣纸白/藕荷紫/青瓷蓝）透明度约 5%，深色更低约 4%，
+   不会干扰文字阅读。背景色本身仍由 --background 变量控制。
+   ============================================================ */
+@layer base {
+  body {
+    /* 两层极淡云纹渐变，增加宣纸的层次氛围（噪点纤维交给 ::before 承载） */
+    background-image:
+      radial-gradient(
+        circle at 18% 22%,
+        color-mix(in srgb, var(--foreground) 4%, transparent) 0,
+        transparent 42%
+      ),
+      radial-gradient(
+        circle at 82% 78%,
+        color-mix(in srgb, var(--foreground) 3%, transparent) 0,
+        transparent 46%
+      );
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+  }
+
+  /* 宣纸纤维噪点：单独一层固定铺满，低透明度，不干扰阅读 */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23p)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    /* 浅色模式：叠深色噪点，低透明度 */
+    opacity: 0.05;
+    mix-blend-mode: multiply;
+  }
+
+  /* 深色模式：改叠浅色噪点、更低透明度，避免死黑一片也不刺眼 */
+  html[data-theme="dark"] body::before {
+    opacity: 0.04;
+    mix-blend-mode: screen;
+  }
+}
+
+/* ============================================================
+   国风朱砂/青蓝渐变下划线（替代生硬的黑色下划线）
+   ------------------------------------------------------------
+   用 background 线性渐变模拟下划线，默认宽度为 0，hover 从左向右展开。
+   渐变色以 --accent 为主，混入一抹青蓝，随主题（含四套国风配色）自动变色。
+   用法：给链接加 class="ink-underline"。
+   ============================================================ */
+@utility ink-underline {
+  background-image: linear-gradient(
+    90deg,
+    var(--accent),
+    color-mix(in srgb, var(--accent) 55%, #2f7d8c)
+  );
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  background-size: 0% 2px;
+  transition: background-size 0.3s ease;
+}
+.ink-underline:hover,
+.ink-underline:focus-visible {
+  background-size: 100% 2px;
+}
+
+/* ============================================================
+   作品卡片 hover 微交互：圆角 + 细边框 + 极淡底色 + 微弱阴影
+   ------------------------------------------------------------
+   0.3s 过渡，反馈克制不浮夸。底色/阴影用主题变量，深浅自动适配。
+   ============================================================ */
+@utility ink-card {
+  @apply rounded-lg border border-transparent px-4 py-3 transition-all duration-300;
+}
+.ink-card:hover {
+  border-color: color-mix(in srgb, var(--border) 80%, transparent);
+  background-color: color-mix(in srgb, var(--accent) 5%, transparent);
+  box-shadow: 0 4px 16px -8px color-mix(in srgb, var(--foreground) 30%, transparent);
+}
+
+/* ============================================================
+   水墨式分割线（替代生硬 <hr>）：中间嵌一枚极简云纹/竹节符号
+   ------------------------------------------------------------
+   用法：<hr class="ink-divider"> 或给 section 分隔处使用。
+   ============================================================ */
+@utility ink-divider {
+  @apply relative border-0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--border) 90%, transparent) 20%,
+    color-mix(in srgb, var(--border) 90%, transparent) 80%,
+    transparent
+  );
+}
+.ink-divider::after {
+  content: "❧";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 0 0.75rem;
+  color: color-mix(in srgb, var(--accent) 70%, var(--muted-foreground));
+  background-color: var(--background);
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+/* ============================================================
+   导航栏底部“柔化”分界线（替代生硬的整条实线 border-b）
+   ------------------------------------------------------------
+   用渐隐渐变的极细横线做底部分界：两端淡出、中段也仅约 55% 浓度，
+   比原来一整条锐利实线更柔和，贴合国风留白气质。深浅自动适配。
+   用法：给容器加 class="nav-hairline"（配合去掉原 border-b）。
+   ============================================================ */
+@utility nav-hairline {
+  position: relative;
+}
+.nav-hairline::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--border) 55%, transparent) 15%,
+    color-mix(in srgb, var(--border) 55%, transparent) 85%,
+    transparent
+  );
+}

@@ -1,5 +1,6 @@
 ---
 import type { CollectionEntry } from "astro:content";
+import { Image } from "astro:assets";
 import { getPostUrl } from "@/utils/getPostPaths";
 import { toTransitionName } from "@/utils/toTransitionName";
 import Datetime from "./Datetime.astro";
@@ -10,15 +11,55 @@ type Props = {
 
 const { variant: Heading = "h2", id, data, filePath } = Astro.props;
 
-const { title, description, ...props } = data;
+const { title, description, heroImage, category, ...props } = data;
+
+const href = getPostUrl(id, filePath, Astro.currentLocale);
+
+// heroImage 可能是 Astro 优化后的 ImageMetadata 对象，也可能是字符串 URL。
+const isImageMeta =
+  heroImage != null && typeof heroImage === "object" && "src" in heroImage;
+const heroSrc =
+  typeof heroImage === "string"
+    ? heroImage
+    : isImageMeta
+      ? (heroImage as ImageMetadata).src
+      : undefined;
 ---
 
-<li class="my-6">
+<li class="ink-card my-6 list-none">
+  {
+    /* 有封面图时展示：轻微圆角 + 细浅边框，hover 图片微放大（scale 1.02） */
+    heroImage && (
+      <a
+        href={href}
+        class="group mb-3 block overflow-hidden rounded-lg border border-border"
+        tabindex="-1"
+        aria-hidden="true"
+      >
+        {isImageMeta ? (
+          <Image
+            src={heroImage as ImageMetadata}
+            alt={title}
+            widths={[400, 800]}
+            sizes="(max-width: 640px) 100vw, 640px"
+            class="aspect-[16/9] w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+          />
+        ) : (
+          <img
+            src={heroSrc}
+            alt={title}
+            loading="lazy"
+            decoding="async"
+            class="aspect-[16/9] w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+          />
+        )}
+      </a>
+    )
+  }
   <a
-    href={getPostUrl(id, filePath, Astro.currentLocale)}
+    href={href}
     class:list={[
-      "text-accent inline-block text-lg font-medium",
-      "decoration-dashed underline-offset-4 hover:underline",
+      "ink-underline text-accent inline-block text-lg font-medium",
       "focus-visible:no-underline focus-visible:underline-offset-0",
     ]}
   >
@@ -26,6 +67,14 @@ const { title, description, ...props } = data;
       {title}
     </Heading>
   </a>
+  {
+    /* 分类高亮标签：低饱和国风色胶囊，深浅模式自动适配 */
+    category && (
+      <span class="ms-2 inline-flex items-center rounded-full bg-accent/12 px-2 py-0.5 align-middle text-xs font-medium text-accent">
+        {category}
+      </span>
+    )
+  }
   <Datetime {...props} />
   <p>{description}</p>
 </li>

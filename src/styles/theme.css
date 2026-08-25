@@ -32,3 +32,96 @@
   --muted-foreground: #afb9ca;
   --border: #ab4b08;
 }
+
+/* ============================================================
+   国风预设配色方案（data-palette）
+   ------------------------------------------------------------
+   设计思路：明暗（data-theme=light/dark）与色调（data-palette）
+   两个维度正交解耦。
+   - data-palette 只负责“色相/色调”，如宣纸白、墨青、藕荷紫、青瓷蓝；
+   - data-theme  仍负责“明暗”，代码块高亮、meta 主题色等继续依赖它。
+   每套浅色系配色额外提供 .dark 下的暗色变体，保证切到深色也协调。
+   变量含义：--background 背景 / --foreground 主文字 / --accent 强调色
+   / --accent-foreground 强调色上的文字 / --muted 弱化背景
+   / --muted-foreground 次要文字 / --border 边框。
+   ============================================================ */
+
+/* 宣纸白：米白纸底 + 墨色文字 + 赭石朱砂强调（浅色系） */
+[data-palette="paper"] {
+  --background: #f7f3ea;
+  --foreground: #2b2622;
+  --accent: #a8322d;
+  --accent-foreground: #fbf7ef;
+  --muted: #eae3d4;
+  --muted-foreground: #7c7263;
+  --border: #ddd3bf;
+}
+[data-palette="paper"].dark {
+  --background: #2a2620;
+  --foreground: #ece3d2;
+  --accent: #d98c6a;
+  --accent-foreground: #241f19;
+  --muted: #3b352c;
+  --muted-foreground: #b3a892;
+  --border: #4a4234;
+}
+
+/* 墨青：深墨青底 + 青瓷色文字 + 青绿强调（深色系） */
+[data-palette="ink"] {
+  --background: #eaf0ee;
+  --foreground: #26302f;
+  --accent: #2f6f66;
+  --accent-foreground: #f2f7f5;
+  --muted: #d7e2df;
+  --muted-foreground: #5f716d;
+  --border: #c3d3ce;
+}
+[data-palette="ink"].dark {
+  --background: #1c2724;
+  --foreground: #dbe7e3;
+  --accent: #6db3a6;
+  --accent-foreground: #14201d;
+  --muted: #2a3733;
+  --muted-foreground: #96aaa4;
+  --border: #35443f;
+}
+
+/* 藕荷紫：藕荷浅紫底 + 紫褐文字 + 藕荷紫强调（浅色系） */
+[data-palette="lotus"] {
+  --background: #f6f0f5;
+  --foreground: #322632;
+  --accent: #8a5a83;
+  --accent-foreground: #faf5f9;
+  --muted: #e8dce7;
+  --muted-foreground: #7a6b78;
+  --border: #d9c9d7;
+}
+[data-palette="lotus"].dark {
+  --background: #2a222b;
+  --foreground: #ece0eb;
+  --accent: #c497bd;
+  --accent-foreground: #201820;
+  --muted: #392f3a;
+  --muted-foreground: #ab9baa;
+  --border: #473b48;
+}
+
+/* 青瓷蓝：青瓷浅色底 + 墨绿文字 + 青瓷蓝绿强调（浅色系） */
+[data-palette="celadon"] {
+  --background: #edf3f0;
+  --foreground: #22302c;
+  --accent: #3f7d76;
+  --accent-foreground: #f2f8f6;
+  --muted: #dae7e2;
+  --muted-foreground: #61756f;
+  --border: #c6d8d2;
+}
+[data-palette="celadon"].dark {
+  --background: #1b2624;
+  --foreground: #d9e7e3;
+  --accent: #6fb2a6;
+  --accent-foreground: #132019;
+  --muted: #283734;
+  --muted-foreground: #93aaa3;
+  --border: #33443f;
+}

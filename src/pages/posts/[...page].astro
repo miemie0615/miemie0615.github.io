@@ -8,6 +8,7 @@ import Main from "@/components/Main.astro";
 import Card from "@/components/Card.astro";
 import Footer from "@/components/Footer.astro";
 import Pagination from "@/components/Pagination.astro";
+import IconScroll from "@/assets/icons/IconScroll.svg";
 import { getSortedPosts } from "@/utils/getSortedPosts";
 import { useTranslations } from "@/i18n";
 import config from "@/config";
@@ -29,9 +30,22 @@ const t = useTranslations(locale);
   <Breadcrumb />
 
   <Main pageTitle={t.pages.postsTitle} pageDesc={t.pages.postsDesc}>
-    <ul>
-      {page.data.map(data => <Card {...data} />)}
-    </ul>
+    {
+      page.data.length > 0 ? (
+        <ul>
+          {page.data.map(data => (
+            <Card {...data} />
+          ))}
+        </ul>
+      ) : (
+        /* 空状态：暂无作品时的国风留白提示，配一枚极简卷轴图标，避免空白页 */
+        <div class="text-muted-foreground my-16 flex flex-col items-center gap-3 text-center">
+          <IconScroll class="stroke-accent/70 size-10" aria-hidden="true" />
+          <p class="text-base">作品正在装裱中，敬请期待。</p>
+          <hr class="ink-divider mt-2 w-40" />
+        </div>
+      )
+    }
   </Main>
 
   <Pagination {page} />

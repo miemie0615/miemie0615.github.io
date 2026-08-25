@@ -28,7 +28,25 @@
     }
 
     a {
-      @apply text-foreground hover:text-accent wrap-break-word decoration-dashed underline-offset-4 focus-visible:no-underline;
+      @apply text-foreground hover:text-accent wrap-break-word underline-offset-4 focus-visible:no-underline;
+      /* 正文链接：hover 时朱砂/青蓝渐变下划线从左展开，替代生硬虚线 */
+      text-decoration: none;
+      background-image: linear-gradient(
+        90deg,
+        var(--accent),
+        color-mix(in srgb, var(--accent) 55%, #2f7d8c)
+      );
+      background-position: 0 100%;
+      background-repeat: no-repeat;
+      background-size: 0% 2px;
+      transition:
+        background-size 0.3s ease,
+        color 0.2s ease;
+    }
+
+    a:hover,
+    a:focus-visible {
+      background-size: 100% 2px;
     }
 
     ul {
@@ -40,7 +58,29 @@
     }
 
     hr {
-      @apply border-border;
+      /* 水墨式分割线：渐隐横线 + 居中云纹符号，替代生硬横线 */
+      @apply relative border-0;
+      height: 1px;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        color-mix(in srgb, var(--border) 90%, transparent) 20%,
+        color-mix(in srgb, var(--border) 90%, transparent) 80%,
+        transparent
+      );
+    }
+
+    hr::after {
+      content: "❧";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 0 0.75rem;
+      color: color-mix(in srgb, var(--accent) 70%, var(--muted-foreground));
+      background-color: var(--background);
+      font-size: 0.9rem;
+      line-height: 1;
     }
 
     img {

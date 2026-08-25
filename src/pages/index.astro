@@ -3,6 +3,10 @@ import { getCollection } from "astro:content";
 import { getRelativeLocaleUrl } from "astro:i18n";
 import IconRss from "@/assets/icons/IconRss.svg";
 import IconArrowRight from "@/assets/icons/IconArrowRight.svg";
+import IconScroll from "@/assets/icons/IconScroll.svg";
+import IconBrush from "@/assets/icons/IconBrush.svg";
+import IconArchive from "@/assets/icons/IconArchive.svg";
+import IconWave from "@/assets/icons/IconWave.svg";
 import Layout from "@/layouts/Layout.astro";
 import Header from "@/components/Header.astro";
 import Footer from "@/components/Footer.astro";
@@ -34,9 +38,24 @@ const homePath = getRelativeLocaleUrl(locale, "");
     class="app-layout my-1"
   >
     <section id="hero" class="border-border border-b pt-8 pb-6">
-      <h1 class="my-4 inline-block text-4xl font-bold sm:my-8 sm:text-5xl">
-        你好👋
-      </h1>
+      {/* 标题两侧竖界栏线（古籍界格意象）+ 印章小点缀 + 水墨挥手小手 */}
+      <div class="my-4 flex items-center gap-3 sm:my-8">
+        <span
+          class="bg-accent/70 inline-block h-8 w-[3px] rounded-full sm:h-10"
+          aria-hidden="true"></span>
+        <h1
+          class="inline-flex items-center gap-2 text-4xl font-bold sm:text-5xl"
+        >
+          你好
+          <IconWave
+            class="stroke-accent inline-block size-8 sm:size-10"
+            aria-hidden="true"
+          />
+        </h1>
+        <span
+          class="bg-accent/70 inline-block h-8 w-[3px] rounded-full sm:h-10"
+          aria-hidden="true"></span>
+      </div>
       <a
         target="_blank"
         href={`${import.meta.env.BASE_URL.replace(/\/?$/, "/")}rss.xml`}
@@ -58,16 +77,18 @@ const homePath = getRelativeLocaleUrl(locale, "");
       <p class="mt-2">
         浏览{" "}
         <LinkButton
-          class="hover:text-accent underline decoration-dashed underline-offset-4"
+          class="ink-underline text-accent"
           href={getRelativeLocaleUrl(locale, "posts")}
         >
+          <IconScroll class="inline-block size-4" aria-hidden="true" />
           作品案例
         </LinkButton>
         ，或查阅{" "}
         <LinkButton
-          class="hover:text-accent underline decoration-dashed underline-offset-4"
+          class="ink-underline text-accent"
           href={getRelativeLocaleUrl(locale, "about")}
         >
+          <IconBrush class="inline-block size-4" aria-hidden="true" />
           项目说明
         </LinkButton>{" "}
         了解更多。
@@ -121,7 +142,11 @@ const homePath = getRelativeLocaleUrl(locale, "");
     }
 
     <div class="my-8 text-center">
-      <LinkButton href={getRelativeLocaleUrl(locale, "posts")}>
+      <LinkButton
+        class="ink-underline"
+        href={getRelativeLocaleUrl(locale, "posts")}
+      >
+        <IconArchive class="inline-block size-4" aria-hidden="true" />
         {t.home.allPosts}
         <IconArrowRight class="inline-block rtl:-rotate-180" />
       </LinkButton>
