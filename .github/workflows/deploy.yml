@@ -1,0 +1,66 @@
+# 将 Astro 站点构建并部署到 GitHub Pages 的工作流
+# 触发时机：推送到 main 分支时自动运行；也可在 Actions 页面手动触发
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  # 允许在 GitHub 的 Actions 页面手动触发部署
+  workflow_dispatch:
+
+# 授予 GITHUB_TOKEN 部署到 GitHub Pages 所需的权限
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同一时间只允许一个部署在进行；新的推送会取消正在排队的旧部署
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  # 第一步：构建静态站点
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出仓库代码
+        uses: actions/checkout@v4
+
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: "11.3.0"
+
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "pnpm"
+
+      - name: 安装项目依赖
+        run: pnpm install --frozen-lockfile
+
+      - name: 构建站点（含 astro check、pagefind 索引）
+        run: pnpm run build
+
+      - name: 配置 GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: 上传构建产物（dist 目录）
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+  # 第二步：将构建产物部署到 GitHub Pages
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: 部署到 GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

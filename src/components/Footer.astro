@@ -1,0 +1,36 @@
+---
+import type { HTMLAttributes } from "astro/types";
+import Socials from "./Socials.astro";
+import { useTranslations } from "@/i18n";
+
+type Props = {
+  noMarginTop?: boolean;
+} & HTMLAttributes<"footer">;
+
+const { noMarginTop = false, class: className, ...attrs } = Astro.props;
+
+const t = useTranslations(Astro.currentLocale);
+
+// 版权起始年份（固定）与当前年份（动态）
+const startYear = 2026;
+const currentYear = new Date().getFullYear();
+// 当前年等于起始年时只显示一个年份，否则显示 "起始年-当前年" 区间
+const yearText =
+  currentYear > startYear ? `${startYear}-${currentYear}` : `${startYear}`;
+---
+
+<footer
+  class:list={["app-layout", { "mt-auto": !noMarginTop }, className]}
+  {...attrs}
+>
+  <div
+    class="border-border flex flex-col items-center justify-between border-t py-6 sm:flex-row-reverse sm:py-4"
+  >
+    <Socials />
+    <div class="my-2 flex flex-col items-center whitespace-nowrap sm:flex-row">
+      <span>{t.footer.copyright} &#169; {yearText} 一间工作室</span>
+      <span class="hidden sm:inline">&nbsp;|&nbsp;</span>
+      <span>{t.footer.allRightsReserved}</span>
+    </div>
+  </div>
+</footer>

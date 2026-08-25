@@ -1,0 +1,136 @@
+---
+// ============================================================================
+// Time 时间轴页面
+// ----------------------------------------------------------------------------
+// 用途：记录工作室的各个时间节点（里程碑、作品、活动等）。
+//
+// 【如何维护】
+//   只需修改下方的 `timeline` 数组即可：
+//   - date  : 时间（字符串，随意格式，例如 "2026-09-01" 或 "2026 年 9 月"）
+//   - title : 该节点的标题
+//   - desc  : 该节点的描述（可留空 ""）
+//   数组顺序即展示顺序，建议按时间从新到旧排列（最新的放最上面）。
+// ============================================================================
+
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Breadcrumb from "@/components/Breadcrumb.astro";
+import Main from "@/components/Main.astro";
+import Footer from "@/components/Footer.astro";
+import config from "@/config";
+
+// 时间轴数据：以后新增时间节点，只改这个数组即可
+const timeline: { date: string; title: string; desc: string }[] = [
+  {
+    date: "2026-09-01",
+    title: "一间工作室，正式和世界见面",
+    desc: "从零散的热爱到慢慢沉淀落地，属于自己的小小创作天地正式启程。",
+  },
+  // 在这里继续添加新的时间节点，例如：
+  // {
+  //   date: "2026-10-01",
+  //   title: "第一件娃衣作品交付",
+  //   desc: "完成第一单原创娃衣定制。",
+  // },
+];
+
+const pageTitle = "Time";
+const pageDesc = "一间工作室的时间轴，记录每一个重要的时间节点。";
+---
+
+<Layout title={`${pageTitle} | ${config.site.title}`} description={pageDesc}>
+  <Header />
+
+  <Breadcrumb />
+
+  <Main pageTitle={pageTitle} pageDesc={pageDesc}>
+    <!-- 时间轴容器 -->
+    <ol class="timeline">
+      {
+        timeline.map(item => (
+          <li class="timeline-item">
+            {/* 左侧圆点标记 */}
+            <span class="timeline-dot" aria-hidden="true" />
+            {/* 右侧内容 */}
+            <div class="timeline-content">
+              <time class="timeline-date">{item.date}</time>
+              <h2 class="timeline-title">{item.title}</h2>
+              {item.desc && <p class="timeline-desc">{item.desc}</p>}
+            </div>
+          </li>
+        ))
+      }
+    </ol>
+
+    {
+      timeline.length === 0 && (
+        <p class="text-foreground/70 mt-8">暂无时间节点，敬请期待。</p>
+      )
+    }
+  </Main>
+
+  <Footer />
+</Layout>
+
+<style>
+  /* 时间轴整体：靠一条竖线串联所有节点 */
+  .timeline {
+    position: relative;
+    margin: 2rem 0;
+    padding-inline-start: 0;
+    list-style: none;
+  }
+
+  /* 每个时间节点 */
+  .timeline-item {
+    position: relative;
+    /* 左侧留出竖线与圆点的空间 */
+    padding-inline-start: 2rem;
+    padding-bottom: 2rem;
+  }
+
+  /* 竖线：画在每个节点的左侧，最后一个节点不再向下延伸 */
+  .timeline-item::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: 0.3125rem; /* 5px，让竖线穿过圆点中心 */
+    top: 0.5rem;
+    bottom: 0;
+    width: 2px;
+    background-color: var(--color-border);
+  }
+  .timeline-item:last-child::before {
+    bottom: auto;
+    height: 0;
+  }
+
+  /* 圆点标记 */
+  .timeline-dot {
+    position: absolute;
+    inset-inline-start: 0;
+    top: 0.35rem;
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 9999px;
+    background-color: var(--color-accent);
+    box-shadow: 0 0 0 3px var(--color-background);
+  }
+
+  /* 节点内容 */
+  .timeline-date {
+    display: block;
+    font-size: 0.875rem;
+    color: color-mix(in srgb, var(--color-foreground) 65%, transparent);
+  }
+  .timeline-title {
+    margin: 0.25rem 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--color-accent);
+  }
+  .timeline-desc {
+    margin: 0;
+    line-height: 1.7;
+    color: color-mix(in srgb, var(--color-foreground) 85%, transparent);
+  }
+</style>
