@@ -7,9 +7,11 @@ import IconSearch from "@/assets/icons/IconSearch.svg";
 import IconMoon from "@/assets/icons/IconMoon.svg";
 import IconSeal from "@/assets/icons/IconSeal.svg";
 import IconPalette from "@/assets/icons/IconPalette.svg";
+import IconChevronDown from "@/assets/icons/IconChevronDown.svg";
 import IconX from "@/assets/icons/IconX.svg";
 import LinkButton from "./LinkButton.astro";
 import { stripBase, stripLocale } from "@/utils/withBase";
+import { slugifyStr } from "@/utils/slugify";
 import { useTranslations } from "@/i18n";
 import config from "@/config";
 
@@ -33,6 +35,18 @@ const isActive = (path: string) => {
   const pathArray = path.split("/").filter(p => p.trim());
   return currentPath === path || currentPathArray[0] === pathArray[0];
 };
+
+// 作品集下拉：两个子项分别汇集带有对应标签的文章。
+// “娃衣”→ 标签「娃衣效果图」；“原创效果图”→ 标签「设计效果图」。
+const worksItems = [
+  { label: t.nav.worksDoll, tag: "娃衣效果图" },
+  { label: t.nav.worksDesign, tag: "设计效果图" },
+].map(item => ({
+  label: item.label,
+  href: getRelativeLocaleUrl(locale, `tags/${slugifyStr(item.tag)}/`),
+}));
+// 当前若处于 /tags 下，作品集入口高亮。
+const isWorksActive = isActive("/tags");
 ---
 
 <a
@@ -85,6 +99,52 @@ const isActive = (path: string) => {
           >
             {t.nav.posts}
           </a>
+        </li>
+        {/* 作品集：点击展开下拉，子项按标签汇集作品（娃衣 / 原创效果图） */}
+        <li class="col-span-2 sm:relative">
+          <div class="works-dropdown relative">
+            <button
+              id="works-btn"
+              type="button"
+              class:list={[
+                "focus-outline hover:text-accent flex w-full items-center justify-center gap-1 font-medium",
+                "px-4 py-3 sm:px-2 sm:py-1",
+                { "active-nav": isWorksActive },
+              ]}
+              aria-haspopup="true"
+              aria-expanded="false"
+              aria-controls="works-menu"
+            >
+              {t.nav.works}
+              <IconChevronDown
+                class="works-caret size-4 transition-transform duration-200"
+                aria-hidden="true"
+              />
+            </button>
+            <div
+              id="works-menu"
+              class:list={[
+                "works-menu hidden",
+                // 桌面端浮层：绝对定位小卡片；移动端内联展开、居中
+                "sm:border-border sm:bg-background/95 sm:absolute sm:end-1/2 sm:z-50 sm:mt-2 sm:w-32 sm:translate-x-1/2 sm:rounded-md sm:border sm:p-1 sm:shadow-lg sm:backdrop-blur-md",
+                "mt-1 flex flex-col gap-1",
+              ]}
+              role="menu"
+              aria-labelledby="works-btn"
+            >
+              {
+                worksItems.map(item => (
+                  <a
+                    href={item.href}
+                    role="menuitem"
+                    class="hover:text-accent sm:hover:bg-muted block rounded px-4 py-2 text-center text-sm sm:px-2 sm:py-1.5 sm:text-start"
+                  >
+                    {item.label}
+                  </a>
+                ))
+              }
+            </div>
+          </div>
         </li>
         <li class="col-span-2">
           <a
@@ -319,9 +379,53 @@ const isActive = (path: string) => {
     });
   }
 
+  // 关闭“作品集”下拉，并复位箭头方向与 aria 状态。
+  function closeWorksMenu() {
+    const btn = document.querySelector("#works-btn");
+    const menu = document.querySelector("#works-menu");
+    menu?.classList.add("hidden");
+    btn?.setAttribute("aria-expanded", "false");
+    btn?.querySelector(".works-caret")?.classList.remove("rotate-180");
+  }
+
+  // 绑定“作品集”下拉的点击展开/收起。
+  function toggleWorksMenu() {
+    const btn = document.querySelector<HTMLButtonElement>("#works-btn");
+    const menu = document.querySelector<HTMLElement>("#works-menu");
+    const caret = btn?.querySelector(".works-caret");
+    if (!btn || !menu) return;
+
+    btn.addEventListener("click", event => {
+      event.stopPropagation();
+      const willOpen = menu.classList.contains("hidden");
+      menu.classList.toggle("hidden");
+      btn.setAttribute("aria-expanded", willOpen ? "true" : "false");
+      caret?.classList.toggle("rotate-180", willOpen);
+    });
+  }
+
   toggleNav();
   document.addEventListener("astro:after-swap", toggleNav);
 
   handleSkipToContent();
   document.addEventListener("astro:after-swap", handleSkipToContent);
+
+  toggleWorksMenu();
+  document.addEventListener("astro:after-swap", toggleWorksMenu);
+
+  // 点击下拉外部区域时收起（全局仅绑定一次）。
+  if (!(window as unknown as { __worksBound?: boolean }).__worksBound) {
+    (window as unknown as { __worksBound?: boolean }).__worksBound = true;
+    document.addEventListener("click", event => {
+      const menu = document.querySelector("#works-menu");
+      const btn = document.querySelector("#works-btn");
+      if (!menu || menu.classList.contains("hidden")) return;
+      const target = event.target as Node;
+      if (!menu.contains(target) && !btn?.contains(target)) closeWorksMenu();
+    });
+    // Esc 键收起下拉。
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape") closeWorksMenu();
+    });
+  }
 </script>

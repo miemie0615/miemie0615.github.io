@@ -30,15 +30,15 @@ export default defineAstroPaperConfig({
     search: "pagefind",
   },
   socials: [
-    { name: "douyin",      url: "https://v.douyin.com/VudHwvc6BR8/ 4@8.com :5pm", linkTitle: "抖音" },
+    { name: "douyin",      url: "https://v.douyin.com/hAr8uiL-yCg/ 8@0.com :9pm", linkTitle: "抖音" },
     { name: "wechat",      url: "#你的微信号或公众号链接",              linkTitle: "微信" },
     { name: "qq",          url: "#你的QQ号或QQ群链接",                  linkTitle: "QQ" },
-    { name: "xiaohongshu", url: "https://www.xiaohongshu.com/user/profile/你的小红书ID", linkTitle: "小红书" },
+    { name: "xiaohongshu", url: "https://xhslink.cn/o/LhHaNtg81X", linkTitle: "小红书" },
   ],
   shareLinks: [
-    { name: "douyin",      url: "https://v.douyin.com/VudHwvc6BR8/ 4@8.com :5pm", linkTitle: "抖音" },
+    { name: "douyin",      url: "https://v.douyin.com/hAr8uiL-yCg/ 8@0.com :9pm", linkTitle: "抖音" },
     { name: "wechat",      url: "#你的微信号或公众号链接",              linkTitle: "微信" },
     { name: "qq",          url: "#你的QQ号或QQ群链接",                  linkTitle: "QQ" },
-    { name: "xiaohongshu", url: "https://www.xiaohongshu.com/user/profile/你的小红书ID", linkTitle: "小红书" },
+    { name: "xiaohongshu", url: "https://xhslink.cn/o/LhHaNtg81X", linkTitle: "小红书" },
   ],
 });

@@ -7,6 +7,10 @@ export interface UIStrings {
     time: string;
     archives: string;
     search: string;
+    // 作品集下拉菜单文案
+    works: string;
+    worksDoll: string;
+    worksDesign: string;
   };
   post: {
     publishedAt: string;

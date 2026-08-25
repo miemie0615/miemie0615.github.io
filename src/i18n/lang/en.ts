@@ -9,6 +9,10 @@ export default {
     time: "Time",
     archives: "归档",
     search: "搜索",
+    // 作品集下拉菜单
+    works: "作品集",
+    worksDoll: "娃衣",
+    worksDesign: "原创效果图",
   },
   post: {
     publishedAt: "Published at",
