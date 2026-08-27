@@ -4,10 +4,13 @@ author: 一间工作室
 pubDatetime: 2026-09-01T09:00:00+08:00
 featured: true
 draft: false
+enableComment: true
+category: 工作室动态
+heroImage: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEZ2XJqjXvMUy0nsN4SDL0V3AkvCvANHwACLjUAAg-ucVRzViNY1wQNNz0E.png"
 tags:
+  - 工作室动态
   - 随笔
-  - 娃衣效果图
-  - 设计效果图
+  - 作品展示
 description: 一间工作室，自此启程，慢慢发光。承载所有原创设计与细碎热爱——娃衣设计、平面视觉、网站制作、特效影像、修图剪辑。
 timezone: "Asia/Shanghai"
 ---

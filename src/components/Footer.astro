@@ -1,7 +1,9 @@
 ---
 import type { HTMLAttributes } from "astro/types";
+import { getRelativeLocaleUrl } from "astro:i18n";
 import Socials from "./Socials.astro";
 import { useTranslations } from "@/i18n";
+import config from "@/config";
 
 type Props = {
   noMarginTop?: boolean;
@@ -17,20 +19,65 @@ const currentYear = new Date().getFullYear();
 // 当前年等于起始年时只显示一个年份，否则显示 "起始年-当前年" 区间
 const yearText =
   currentYear > startYear ? `${startYear}-${currentYear}` : `${startYear}`;
+
+const { socials, features } = config;
+// 不蒜子统计是否启用
+const showBusuanzi =
+  features.analytics &&
+  features.analytics.provider === "busuanzi";
 ---
 
 <footer
   class:list={["app-layout", { "mt-auto": !noMarginTop }, className]}
   {...attrs}
 >
-  <div
-    class="border-border flex flex-col items-center justify-between border-t py-6 sm:flex-row-reverse sm:py-4"
-  >
-    <Socials />
-    <div class="my-2 flex flex-col items-center whitespace-nowrap sm:flex-row">
-      <span>{t.footer.copyright} &#169; {yearText} 一间工作室</span>
-      <span class="hidden sm:inline">&nbsp;|&nbsp;</span>
-      <span>{t.footer.allRightsReserved}</span>
-    </div>
+  <!-- 联系公告条 -->
+  <div class="border-border mb-4 flex flex-col items-center gap-2 rounded-lg border px-4 py-3 sm:flex-row sm:justify-between">
+    <p class="text-muted-foreground text-sm">
+      一间工作室正式成立，QQ、微信暂不对外开放联系，可通过
+      <span class="text-accent font-medium">小红书</span>、
+      <span class="text-accent font-medium">抖音</span>账号联系我们
+    </p>
+    {
+      socials.length > 0 && (
+        <div class="flex items-center gap-1">
+          <Socials />
+        </div>
+      )
+    }
   </div>
-</footer>
+
+    <div
+      class="border-border flex flex-col items-center justify-between border-t py-6 sm:flex-row-reverse sm:py-4"
+    >
+      <div class="my-2 flex flex-col items-center gap-2 whitespace-nowrap sm:flex-row sm:gap-4">
+        <span>{t.footer.copyright} &#169; {yearText} 一间工作室</span>
+        <span class="hidden sm:inline">&nbsp;|&nbsp;</span>
+        <span>{t.footer.allRightsReserved}</span>
+        <a
+          href={getRelativeLocaleUrl(Astro.currentLocale ?? config.site.lang, "works")}
+          class="text-muted-foreground hover:text-accent transition-colors"
+        >
+          作品展示
+        </a>
+        <a
+          href={getRelativeLocaleUrl(Astro.currentLocale ?? config.site.lang, "about")}
+          class="text-muted-foreground hover:text-accent transition-colors"
+        >
+          关于
+        </a>
+        {
+          showBusuanzi && (
+            <>
+              <span class="hidden sm:inline text-muted-foreground/40">·</span>
+              <span class="text-muted-foreground text-xs">
+                访客 <span id="busuanzi_value_site_uv" class="text-accent font-medium">0</span>
+                &nbsp;·&nbsp; 浏览
+                <span id="busuanzi_value_site_pv" class="text-accent font-medium">0</span>
+              </span>
+            </>
+          )
+        }
+      </div>
+    </div>
+  </footer>

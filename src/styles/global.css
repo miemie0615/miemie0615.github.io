@@ -161,17 +161,48 @@
   position: relative;
 }
 .nav-hairline::after {
-  content: "";
-  position: absolute;
-  inset-inline: 0;
-  bottom: 0;
-  height: 1px;
-  pointer-events: none;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    color-mix(in srgb, var(--border) 55%, transparent) 15%,
-    color-mix(in srgb, var(--border) 55%, transparent) 85%,
-    transparent
-  );
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    height: 1px;
+    pointer-events: none;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in srgb, var(--border) 55%, transparent) 15%,
+      color-mix(in srgb, var(--border) 55%, transparent) 85%,
+      transparent
+    );
+  }
+
+/* ============================================================
+   移动端适配：Giscus 评论区防溢出 + 文章图片自适应
+   ============================================================ */
+
+/* Giscus 容器与 iframe 响应式 */
+.giscus {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* 文章图片自适应容器宽度，防止横向滚动 */
+.app-prose img,
+.prose img,
+.content-image {
+  max-width: 100%;
+  height: auto;
+}
+
+/* 内容图片：保持宽高比防止 CLS，悬停微缩放提示可点击 */
+.content-image {
+  display: block;
+  margin: 1rem auto;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  transition: transform 0.3s ease;
+}
+
+.content-image:hover {
+  transform: scale(1.01);
 }

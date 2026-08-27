@@ -72,24 +72,26 @@ const homePath = getRelativeLocaleUrl(locale, "");
       </a>
 
       <p>
-        一间工作室，是专注国风周边、BJD 娃衣与平面设计的创作站点。本站追求简洁清爽的阅读体验，完美适配手机、电脑各类设备。自带深浅两套显示模式，同时支持自定义主题配色。
+        一间工作室，是专注 BJD 娃衣、国风周边、平面设计与特效影像的原创定制设计工作室。
+        我们追求把创意落地为可交付的成品，擅长娃衣版型设计、品牌视觉、文创周边、视频剪辑与商业修图。
+        本站采用国风留白设计，适配手机与桌面设备，支持深浅两套显示模式与自定义配色。
       </p>
       <p class="mt-2">
         浏览{" "}
         <LinkButton
           class="ink-underline text-accent"
-          href={getRelativeLocaleUrl(locale, "posts")}
+          href={getRelativeLocaleUrl(locale, "works")}
         >
-          <IconScroll class="inline-block size-4" aria-hidden="true" />
-          作品案例
+          <IconBrush class="inline-block size-4" aria-hidden="true" />
+          作品展示
         </LinkButton>
         ，或查阅{" "}
         <LinkButton
           class="ink-underline text-accent"
           href={getRelativeLocaleUrl(locale, "about")}
         >
-          <IconBrush class="inline-block size-4" aria-hidden="true" />
-          项目说明
+          <IconScroll class="inline-block size-4" aria-hidden="true" />
+          关于我们
         </LinkButton>{" "}
         了解更多。
       </p>
@@ -103,6 +105,19 @@ const homePath = getRelativeLocaleUrl(locale, "");
           </div>
         )
       }
+    </section>
+
+    <!-- 联系方式公告 -->
+    <section
+      id="announcement"
+      class="border-border bg-muted/30 my-6 rounded-lg border px-4 py-3 sm:px-6"
+    >
+      <p class="text-muted-foreground text-sm leading-relaxed">
+        <span class="text-accent font-medium">📢 公告：</span>
+        一间工作室正式成立，QQ、微信暂不对外开放联系，可通过
+        <span class="text-accent font-semibold">小红书</span>、
+        <span class="text-accent font-semibold">抖音</span>账号联系我们。
+      </p>
     </section>
 
     {
@@ -144,10 +159,10 @@ const homePath = getRelativeLocaleUrl(locale, "");
     <div class="my-8 text-center">
       <LinkButton
         class="ink-underline"
-        href={getRelativeLocaleUrl(locale, "posts")}
+        href={getRelativeLocaleUrl(locale, "works")}
       >
         <IconArchive class="inline-block size-4" aria-hidden="true" />
-        {t.home.allPosts}
+        查看全部作品
         <IconArrowRight class="inline-block rtl:-rotate-180" />
       </LinkButton>
     </div>

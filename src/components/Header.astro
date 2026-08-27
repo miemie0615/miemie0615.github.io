@@ -45,8 +45,8 @@ const worksItems = [
   label: item.label,
   href: getRelativeLocaleUrl(locale, `tags/${slugifyStr(item.tag)}/`),
 }));
-// 当前若处于 /tags 下，作品集入口高亮。
-const isWorksActive = isActive("/tags");
+// 当前若处于 /tags 或 /works 下，作品集入口高亮。
+const isWorksActive = isActive("/tags") || isActive("/works");
 ---
 
 <a
@@ -98,6 +98,15 @@ const isWorksActive = isActive("/tags");
             class:list={{ "active-nav": isActive("/posts") }}
           >
             {t.nav.posts}
+          </a>
+        </li>
+        {/* 作品展示：独立作品汇总页，按分类展示所有原创设计 */}
+        <li class="col-span-2">
+          <a
+            href={getRelativeLocaleUrl(locale, "works")}
+            class:list={{ "active-nav": isActive("/works") }}
+          >
+            {t.nav.worksShowcase}
           </a>
         </li>
         {/* 作品集：点击展开下拉，子项按标签汇集作品（娃衣 / 原创效果图） */}

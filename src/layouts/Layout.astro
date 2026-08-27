@@ -15,7 +15,7 @@ type Props = {
   canonicalURL?: string;
 };
 
-const { site } = config;
+const { site, features } = config;
 
 const {
   title = site.title,
@@ -41,7 +41,7 @@ const rssHref = getRelativeLocaleUrl(
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/svg+xml" href={getAssetPath("favicon.svg")} />
-    <link rel="icon" href={getAssetPath("favicon.ico")} />
+    <link rel="icon" type="image/svg" href={getAssetPath("favicon.svg")} />
     <link rel="canonical" href={canonicalURL} />
     <meta name="generator" content={Astro.generator} />
 
@@ -125,6 +125,55 @@ const rssHref = getRelativeLocaleUrl(
     </script>
 
     <ClientRouter />
+
+    <!-- Analytics: 根据配置加载对应统计脚本 -->
+    {
+      features.analytics && (
+        features.analytics.provider === "busuanzi" ? (
+          // 不蒜子：零配置，按域名自动统计 PV/UV
+          // pure 版本仅显示计数；完整版本自动追踪 SPA 页面切换
+          <>
+            <script
+              is:inline
+              src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"
+              async
+            ></script>
+            <script is:inline>
+              // SPA 切换时重新触发不蒜子页面统计
+              document.addEventListener("astro:page-load", function () {
+                if (typeof busuanzi_pageview === "function") {
+                  busuanzi_pageview();
+                }
+              });
+            </script>
+          </>
+        ) : features.analytics.provider === "ga4" ? (
+          // Google Analytics 4
+          <>
+            <script is:inline>
+              (function () {
+                var dnt = navigator.doNotTrack || window.doNotTrack;
+                if (dnt === "1") return;
+                window.dataLayer = window.dataLayer || [];
+                window.gtag = function () {
+                  window.dataLayer.push(arguments);
+                };
+                window.gtag("js", new Date());
+                window.gtag("config", "{features.analytics.id}", {
+                  anonymize_ip: true,
+                  send_page_view: true,
+                });
+              })();
+            </script>
+            <script
+              is:inline
+              src="https://www.googletagmanager.com/gtag/js?id={features.analytics.id}"
+              async
+            ></script>
+          </>
+        ) : null
+      )
+    }
   </head>
   <body
     class="bg-background font-app text-foreground selection:bg-accent/75 selection:text-accent-foreground flex min-h-svh flex-col"

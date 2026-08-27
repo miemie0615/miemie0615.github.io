@@ -13,6 +13,8 @@ export default {
     works: "作品集",
     worksDoll: "娃衣",
     worksDesign: "原创效果图",
+    // 作品集汇总页
+    worksShowcase: "作品展示",
   },
   post: {
     publishedAt: "Published at",
@@ -57,6 +59,9 @@ export default {
 
     searchTitle: "Search",
     searchDesc: "Search any article ...",
+
+    worksTitle: "作品集",
+    worksDesc: "聚合所有原创设计作品，按分类浏览",
   },
   a11y: {
     skipToContent: "Skip to content",

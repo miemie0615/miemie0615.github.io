@@ -11,6 +11,8 @@ export interface UIStrings {
     works: string;
     worksDoll: string;
     worksDesign: string;
+    // 作品集汇总页
+    worksShowcase: string;
   };
   post: {
     publishedAt: string;
@@ -55,6 +57,9 @@ export interface UIStrings {
 
     searchTitle: string;
     searchDesc: string;
+
+    worksTitle: string;
+    worksDesc: string;
   };
   a11y: {
     skipToContent: string;

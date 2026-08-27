@@ -74,6 +74,7 @@ const {
   tags,
   hideEditPost,
   heroImage,
+  enableComment,
 } = post.data;
 
 // 封面图可能是 Astro 优化后的 ImageMetadata 对象，也可能是字符串 URL（远程图）。
@@ -195,7 +196,7 @@ const ogImage = ogImageUrl
 
     <ShareLinks />
 
-    <Giscus />
+    {enableComment !== false && <Giscus />}
 
     <hr class="ink-divider my-8" />
 

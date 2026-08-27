@@ -7,6 +7,7 @@
  * - 动态加载 L2Dwidget.min.js，按需切换模型
  * - 点击互动、拖拽移动、气泡对话
  * - 适配深色/浅色主题 + 国风配色
+ * - 移动端自动隐藏，延迟加载不阻塞首屏
  *
  * 模型来源：https://github.com/xiazeyu/live2d-widget-models
  * 核心库：https://github.com/xiazeyu/live2d-widget.js
@@ -108,6 +109,7 @@
   var tipsTimer = null;
   var currentModel = null;
   var l2dWidget = null;
+  var initialized = false;
 
   /* ============================================================
      工具函数
@@ -132,6 +134,13 @@
     if (h < 18) return "下午好，加油工作！";
     if (h < 22) return "晚上好，夜色真美~";
     return "夜深了，早点休息吧";
+  }
+
+  /* ============================================================
+     移动端检测
+     ============================================================ */
+  function isMobile() {
+    return window.matchMedia("(max-width: 768px)").matches;
   }
 
   /* ============================================================
@@ -180,7 +189,6 @@
     }
 
     // 优先使用模型自带的 url 字段（支持非 npm 来源的模型）
-    // 注意：使用 replaceAll 而非 replace，因为 URL 中有两处 {name} 需要替换
     var jsonPath = model.url || CDN_MODEL.replace(/\{name\}/g, modelName);
 
     if (!window.L2Dwidget) {
@@ -192,7 +200,6 @@
         showTips("加载失败，请刷新重试", 5000);
       });
     } else {
-      // 已初始化，切换模型
       if (currentModel === modelName) {
         showTips("已经是 " + model.label + " 啦", 2500);
         return;
@@ -215,8 +222,9 @@
           hOffset: 0,
           vOffset: -20
         },
+        // 移动端不显示看板娘
         mobile: {
-          show: true,
+          show: false,
           scale: 0.5
         },
         react: {
@@ -233,10 +241,12 @@
         }
       });
 
-      // 直接使用传入的模型名，而非从 URL 提取
       currentModel = modelName;
       localStorage.setItem("mascot_model", modelName);
       var model = MODELS.find(function (m) { return m.name === modelName; });
+
+      initialized = true;
+
       setTimeout(function () {
         showTips(getGreeting(), 4000);
         if (model) showTips("我是 " + model.label + "！", 3000);
@@ -251,7 +261,6 @@
 
   function doSwitchModel(jsonPath, modelName, label) {
     try {
-      // L2Dwidget 没有直接的 switchModel API，需要重新加载
       // 先移除旧的 canvas
       var oldCanvas = document.querySelector("#live2dcanvas, canvas[id^='live2d']");
       if (oldCanvas) oldCanvas.remove();
@@ -274,7 +283,7 @@
           vOffset: -20
         },
         mobile: {
-          show: true,
+          show: false,
           scale: 0.5
         },
         react: {
@@ -304,23 +313,14 @@
      额外交互（在 L2Dwidget 之上）
      ============================================================ */
   function bindExtraInteraction() {
-    var container = document.getElementById("mascot-container");
-
-    // 点击互动
+    // 点击看板娘弹出工作室联系提示
     setTimeout(function () {
       var canvas = document.querySelector("canvas[id^='live2d']");
       if (!canvas) return;
 
       canvas.addEventListener("click", function () {
-        var pool = [
-          "你好呀~",
-          "今天也要加油哦！",
-          "记得喝水哦",
-          "休息一下眼睛吧",
-          "你看起来很棒！",
-          "一起加油吧！"
-        ];
-        showTips(pool[Math.floor(Math.random() * pool.length)], 2500);
+        // 显示点击弹窗文案
+        showTips("一间工作室正式成立，QQ微信暂无法联系，请通过小红书、抖音联系我们", 5000);
       });
 
       // 保存 canvas 引用
@@ -502,9 +502,19 @@
   }
 
   /* ============================================================
-     启动
+     启动（延迟加载，不阻塞首屏）
      ============================================================ */
   function start() {
+    // 移动端不加载看板娘
+    if (isMobile()) {
+      document.getElementById("mascot-container").style.display = "none";
+      var tools = document.querySelector(".mascot-tools");
+      if (tools) tools.style.display = "none";
+      var toggle = document.getElementById("mascot-toggle");
+      if (toggle) toggle.style.display = "none";
+      return;
+    }
+
     hidden = localStorage.getItem("mascot_hidden") === "1";
     if (hidden) {
       document.getElementById("mascot-container").classList.add("mascot-hidden");
@@ -516,13 +526,27 @@
     bindToolbar();
     bindMisc();
 
-    // 加载上次使用的模型
-    var savedModel = localStorage.getItem("mascot_model");
-    if (savedModel && MODELS.find(function (m) { return m.name === savedModel; })) {
-      loadModel(savedModel);
+    // 延迟加载：优先使用 requestIdleCallback，回退到 setTimeout
+    var loadAfterDelay = function () {
+      // 如果已经初始化过（如 SPA 切换回来），只重新绑定交互
+      if (initialized && window.L2Dwidget) {
+        // 重新绑定点击事件等（因为 DOM 可能重建了）
+        bindExtraInteraction();
+        return;
+      }
+
+      var savedModel = localStorage.getItem("mascot_model");
+      if (savedModel && MODELS.find(function (m) { return m.name === savedModel; })) {
+        loadModel(savedModel);
+      } else {
+        loadModel("shizuku");
+      }
+    };
+
+    if ("requestIdleCallback" in window) {
+      requestIdleCallback(loadAfterDelay, { timeout: 3000 });
     } else {
-      // 默认用 shizuku
-      loadModel("shizuku");
+      setTimeout(loadAfterDelay, 1500);
     }
   }
 
@@ -532,9 +556,41 @@
     start();
   }
 
-  // Astro View Transitions 后重新绑定
+  /* ============================================================
+     SPA 路由切换后重新初始化
+     Astro View Transitions 页面切换时触发 astro:page-load
+     ============================================================ */
+  document.addEventListener("astro:page-load", function () {
+    // 重新绑定工具栏事件
+    bindToolbar();
+    bindMisc();
+
+    // 延迟加载看板娘
+    if ("requestIdleCallback" in window) {
+      requestIdleCallback(function () {
+        if (initialized && window.L2Dwidget) {
+          // 已初始化，重新绑定交互
+          bindExtraInteraction();
+        } else {
+          // 未初始化，执行完整启动
+          start();
+        }
+      }, { timeout: 2000 });
+    } else {
+      setTimeout(function () {
+        if (initialized && window.L2Dwidget) {
+          bindExtraInteraction();
+        } else {
+          start();
+        }
+      }, 800);
+    }
+  });
+
+  // 兼容旧版本 View Transitions 事件
   document.addEventListener("astro:after-swap", function () {
     bindToolbar();
+    bindMisc();
   });
 })();
 </script>
@@ -595,7 +651,6 @@
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.3s ease, transform 0.3s ease;
-    /* 提示气泡在模型头顶附近 */
     right: calc(1.25rem + 220px + 0.75rem);
     bottom: calc(1.25rem + 340px);
     transform: translateX(0) translateY(10px);
@@ -605,20 +660,11 @@
     content: "";
     position: absolute;
     top: 100%;
-    left: 50%;
-    transform: translateX(-50%) rotate(-45deg);
+    right: 1rem;
+    transform: translateX(50%) rotate(135deg);
     width: 10px;
     height: 10px;
     background: var(--background);
-    border-right: 1px solid var(--border);
-    border-top: 1px solid var(--border);
-  }
-
-  /* 右侧对齐时小三角位置调整 */
-  .mascot-tips::after {
-    left: auto;
-    right: 1rem;
-    transform: translateX(50%) rotate(135deg);
     border: none;
     border-left: 1px solid var(--border);
     border-bottom: 1px solid var(--border);
@@ -835,39 +881,20 @@
     transform: scale(1.1);
   }
 
-  /* ===== 覆盖 L2Dwidget 默认样式 ===== */
-  .waifu {
-    /* L2Dwidget 使用 fixed 定位，调整到我们的容器位置 */
+  /* ===== 响应式：移动端完全隐藏 ===== */
+  @media (max-width: 768px) {
+    .mascot-container,
+    .mascot-tools,
+    .mascot-toggle {
+      display: none !important;
+    }
   }
 
-  /* ===== 响应式 ===== */
-  @media (max-width: 48rem) {
+  /* 桌面端响应式微调 */
+  @media (min-width: 769px) and (max-width: 1024px) {
     .mascot-panel {
-      width: calc(100vw - 2rem);
-      right: calc(0.625rem + 150px + 1.5rem);
-      bottom: calc(0.625rem + 40px);
-      max-height: 60vh;
-    }
-
-    .mascot-model-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-
-    .mascot-tools {
-      right: 0.625rem;
-      top: 0.625rem;
-    }
-
-    .mascot-toggle {
-      right: 0.625rem;
-      top: calc(0.625rem + 120px + 0.5rem);
-    }
-
-    .mascot-tips {
-      right: calc(0.625rem + 150px + 0.5rem);
-      bottom: calc(0.625rem + 200px);
-      font-size: 0.75rem;
-      max-width: 150px;
+      width: 280px;
+      right: calc(0.625rem + 180px + 1rem);
     }
   }
 </style>

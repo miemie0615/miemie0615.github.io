@@ -1,0 +1,141 @@
+---
+import { getCollection } from "astro:content";
+import { Image } from "astro:assets";
+import type { ImageMetadata } from "astro";
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Breadcrumb from "@/components/Breadcrumb.astro";
+import Main from "@/components/Main.astro";
+import Footer from "@/components/Footer.astro";
+import { getSortedPosts } from "@/utils/getSortedPosts";
+import { postFilter } from "@/utils/postFilter";
+import { getPostUrl } from "@/utils/getPostPaths";
+import { slugifyStr } from "@/utils/slugify";
+import { useTranslations } from "@/i18n";
+import config from "@/config";
+
+const locale = Astro.currentLocale ?? config.site.lang;
+const t = useTranslations(locale);
+
+const allPosts = await getCollection("posts", ({ data }) => !data.draft);
+const publishedPosts = getSortedPosts(allPosts.filter(postFilter));
+
+// 按 category 字段分组
+const categoryMap = new Map<string, typeof publishedPosts>();
+
+for (const post of publishedPosts) {
+  const cat = post.data.category || "其他";
+  if (!categoryMap.has(cat)) {
+    categoryMap.set(cat, []);
+  }
+  categoryMap.get(cat)!.push(post);
+}
+
+const categories = Array.from(categoryMap.entries()).sort(([a], [b]) =>
+  a.localeCompare(b, "zh-CN")
+);
+---
+
+<Layout title={`${t.pages.worksTitle} | ${config.site.title}`}>
+  <Header />
+
+  <Breadcrumb />
+
+  <Main pageTitle={t.pages.worksTitle} pageDesc={t.pages.worksDesc}>
+    {
+      categories.length === 0 ? (
+        <div class="text-muted-foreground my-16 text-center">
+          <p>暂无作品展示，敬请期待。</p>
+        </div>
+      ) : (
+        categories.map(([categoryName, posts]) => (
+          <section id={slugifyStr(categoryName)} class="mb-12">
+            <div class="border-border mb-6 flex items-center gap-3 border-b pb-3">
+              <span
+                class="bg-accent/70 inline-block h-6 w-[3px] rounded-full"
+                aria-hidden="true"
+              ></span>
+              <h2 class="text-xl font-semibold tracking-wide">
+                {categoryName}
+              </h2>
+              <span class="text-muted-foreground text-sm">
+                {posts.length} 件作品
+              </span>
+            </div>
+            <ul class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {posts.map(post => {
+                const { heroImage, title, description, category } =
+                  post.data;
+                const { id, filePath } = post;
+
+                const isImageMeta =
+                  heroImage != null &&
+                  typeof heroImage === "object" &&
+                  "src" in heroImage;
+                const heroSrc =
+                  typeof heroImage === "string"
+                    ? heroImage
+                    : isImageMeta
+                      ? (heroImage as ImageMetadata).src
+                      : undefined;
+
+                const href = getPostUrl(id, filePath, locale);
+
+                return (
+                  <li class="ink-card list-none">
+                    {
+                      heroImage && (
+                        <a
+                          href={href}
+                          class="group mb-3 block overflow-hidden rounded-lg border border-border"
+                          tabindex="-1"
+                          aria-hidden="true"
+                        >
+                          {isImageMeta ? (
+                            <Image
+                              src={heroImage as ImageMetadata}
+                              alt={title}
+                              widths={[400, 800]}
+                              sizes="(max-width: 640px) 100vw, 33vw"
+                              class="aspect-[16/9] w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                            />
+                          ) : heroSrc ? (
+                            <img
+                              src={heroSrc}
+                              alt={title}
+                              loading="lazy"
+                              decoding="async"
+                              class="aspect-[16/9] w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                            />
+                          ) : null}
+                        </a>
+                      )
+                    }
+                    <a
+                      href={href}
+                      class="text-accent ink-underline inline-block text-base font-medium"
+                    >
+                      {title}
+                    </a>
+                    {
+                      category && (
+                        <span class="ms-2 inline-flex items-center rounded-full bg-accent/12 px-2 py-0.5 align-middle text-xs font-medium text-accent">
+                          {category}
+                        </span>
+                      )
+                    }
+                    <p class="text-muted-foreground mt-1 text-sm">
+                      {description}
+                    </p>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        ))
+      )
+    }
+  </Main>
+
+  <Footer />
+</Layout>

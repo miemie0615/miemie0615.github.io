@@ -3,12 +3,17 @@ import Layout from "@/layouts/Layout.astro";
 import Header from "@/components/Header.astro";
 import Footer from "@/components/Footer.astro";
 import LinkButton from "@/components/LinkButton.astro";
+import IconBrush from "@/assets/icons/IconBrush.svg";
+import IconSeal from "@/assets/icons/IconSeal.svg";
 import { getRelativeLocaleUrl } from "astro:i18n";
 import { useTranslations } from "@/i18n";
 import config from "@/config";
 
 const locale = Astro.currentLocale ?? config.site.lang;
 const t = useTranslations(locale);
+const homeUrl = getRelativeLocaleUrl(locale, "");
+const worksUrl = getRelativeLocaleUrl(locale, "works");
+const aboutUrl = getRelativeLocaleUrl(locale, "about");
 ---
 
 <Layout title={`${t.notFound.title} | ${config.site.title}`}>
@@ -16,18 +21,60 @@ const t = useTranslations(locale);
 
   <main
     id="main-content"
-    class="app-layout my-1 flex flex-1 items-center justify-center"
+    class="app-layout my-1 flex min-h-[70vh] flex-1 items-center justify-center"
   >
-    <div class="mb-14 flex flex-col items-center justify-center">
-      <h1 class="text-accent text-9xl font-bold">404</h1>
-      <span aria-hidden="true"> ¯\_(ツ)_/¯ </span>
-      <p class="mt-4 text-2xl sm:text-3xl">{t.notFound.message}</p>
-      <LinkButton
-        href={getRelativeLocaleUrl(locale, "")}
-        class="my-6 text-lg underline decoration-dashed underline-offset-8"
-      >
-        {t.notFound.goHome}
-      </LinkButton>
+    <div class="flex flex-col items-center text-center">
+      {/* 印章风 404 徽标 */}
+      <div class="relative mb-6">
+        <div class="bg-accent/10 flex size-32 items-center justify-center rounded-lg border-2 border-dashed border-accent/30 sm:size-40">
+          <span class="text-accent text-6xl font-black tracking-tight sm:text-8xl">
+            404
+          </span>
+        </div>
+        <IconSeal
+          class="text-accent absolute -right-3 -top-3 size-8 rotate-12 sm:size-10"
+          aria-hidden="true"
+        />
+      </div>
+
+      {/* 诗意文案 */}
+      <h1 class="mb-2 text-2xl font-semibold sm:text-3xl">
+        此路不通，误入歧途
+      </h1>
+      <p class="text-muted-foreground mb-1 text-lg">
+        你要找的页面，似乎还在画稿之中
+      </p>
+      <p class="text-muted-foreground mb-8 text-sm">
+        不过既来之则安之，不如看看我们已完成的作品？
+      </p>
+
+      {/* 操作按钮组 */}
+      <div class="flex flex-wrap items-center justify-center gap-3">
+        <LinkButton
+          href={homeUrl}
+          class="bg-accent text-accent-foreground hover:opacity-90 inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium transition-opacity"
+        >
+          <IconBrush class="size-4" aria-hidden="true" />
+          返回首页
+        </LinkButton>
+        <LinkButton
+          href={worksUrl}
+          class="border-border hover:border-accent hover:text-accent inline-flex items-center gap-2 rounded-lg border bg-transparent px-5 py-2.5 text-sm font-medium transition-colors"
+        >
+          浏览作品集
+        </LinkButton>
+        <LinkButton
+          href={aboutUrl}
+          class="text-muted-foreground hover:text-accent inline-flex items-center gap-2 px-3 py-2.5 text-sm transition-colors"
+        >
+          关于我们
+        </LinkButton>
+      </div>
+
+      {/* 快捷提示 */}
+      <p class="text-muted-foreground mt-8 text-xs">
+        试试导航栏或搜索功能，也许能找到你想要的内容
+      </p>
     </div>
   </main>
 

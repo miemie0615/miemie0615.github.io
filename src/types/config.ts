@@ -59,6 +59,17 @@ interface FeaturesConfig {
    * Set to false to disable search entirely.
    */
   search?: "pagefind" | false;
+  /**
+   * Analytics / page-view counter configuration.
+   *
+   * - "busuanzi"  — 不蒜子统计（零配置，国内主流，自动按域名统计）
+   * - "ga4"      — Google Analytics 4（需要填写 id）
+   * - false      — 关闭统计
+   */
+  analytics?:
+    | { provider: "busuanzi" }
+    | { provider: "ga4"; id: string }
+    | false;
 }
 
 interface SocialLink {

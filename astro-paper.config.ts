@@ -6,11 +6,10 @@ export default defineAstroPaperConfig({
     title: "一间工作室",
     description: "BJD娃衣、国风周边、平面设计定制工作室",
     author: "一间工作室",
-    // 工作室链接
     profile: "",
     ogImage: "default-og.jpg",
     lang: "zh-CN",
-    timezone: "Asia/Bangkok",
+    timezone: "Asia/Shanghai",
     dir: "ltr",
   },
   posts: {
@@ -28,17 +27,18 @@ export default defineAstroPaperConfig({
       url: "https://github.com/satnaing/astro-paper/edit/main/",
     },
     search: "pagefind",
+    // 访问统计：不蒜子（零配置，国内主流，自动按域名统计）
+    // 如需 Google Analytics 4，改为：{ provider: "ga4", id: "G-XXXXXXXXXX" }
+    analytics: {
+      provider: "busuanzi",
+    },
   },
   socials: [
-    { name: "douyin",      url: "https://v.douyin.com/hAr8uiL-yCg/ 8@0.com :9pm", linkTitle: "抖音" },
-    { name: "wechat",      url: "#你的微信号或公众号链接",              linkTitle: "微信" },
-    { name: "qq",          url: "#你的QQ号或QQ群链接",                  linkTitle: "QQ" },
-    { name: "xiaohongshu", url: "https://xhslink.cn/o/LhHaNtg81X", linkTitle: "小红书" },
+    { name: "douyin",       url: "https://v.douyin.com/hAr8uiL-yCg/", linkTitle: "抖音" },
+    { name: "xiaohongshu", url: "https://xhslink.cn/o/LhHaNtg81X",   linkTitle: "小红书" },
   ],
   shareLinks: [
-    { name: "douyin",      url: "https://v.douyin.com/hAr8uiL-yCg/ 8@0.com :9pm", linkTitle: "抖音" },
-    { name: "wechat",      url: "#你的微信号或公众号链接",              linkTitle: "微信" },
-    { name: "qq",          url: "#你的QQ号或QQ群链接",                  linkTitle: "QQ" },
-    { name: "xiaohongshu", url: "https://xhslink.cn/o/LhHaNtg81X", linkTitle: "小红书" },
+    { name: "douyin",      url: "https://v.douyin.com/hAr8uiL-yCg/", linkTitle: "抖音" },
+    { name: "xiaohongshu", url: "https://xhslink.cn/o/LhHaNtg81X",   linkTitle: "小红书" },
   ],
 });
