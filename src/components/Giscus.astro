@@ -1,0 +1,132 @@
+---
+/**
+ * Giscus 评论系统组件
+ * 基于 GitHub Discussions 的免费评论系统
+ * 支持跟随网站主题（浅色/深色）动态切换
+ */
+
+// Giscus 配置参数
+const repo = "miemie0615/miemie0615.github.io";
+const repoId = "R_kgDOUDSzOQ";
+const category = "Announcements";
+const categoryId = "DIC_kwDOUDSzOc4DERSo";
+const mapping = "pathname";
+const strict = "0";
+const reactionsEnabled = "1";
+const emitMetadata = "0";
+const inputPosition = "bottom";
+const lang = "zh-CN";
+const loading = "lazy";
+
+// 初始主题：默认浅色，后续通过 JS 动态切换
+const defaultTheme = "light";
+---
+
+<!-- Giscus 评论容器 -->
+<div id="giscus-container" class="giscus my-8"></div>
+
+<script is:inline>
+  (function () {
+    // 获取当前网站主题
+    function getCurrentTheme() {
+      const theme = document.documentElement.getAttribute("data-theme");
+      if (theme === "dark") return "dark";
+      return "light";
+    }
+
+    // 发送主题切换消息给 Giscus iframe
+    function setGiscusTheme(theme) {
+      const iframe = document.querySelector(".giscus-frame");
+      if (!iframe || !iframe.contentWindow) return;
+      
+      const message = {
+        config: {
+          theme: theme === "dark" ? "dark" : "light",
+        },
+      };
+      iframe.contentWindow.postMessage(message, "https://giscus.app");
+    }
+
+    // 初始化：等待 Giscus 加载后同步主题
+    function initGiscus() {
+      const currentTheme = getCurrentTheme();
+      
+      // 如果当前主题是深色，需要切换
+      if (currentTheme === "dark") {
+        setTimeout(() => setGiscusTheme("dark"), 300);
+      }
+    }
+
+    // 监听网站主题变化
+    function observeThemeChanges() {
+      const observer = new MutationObserver(function (mutations) {
+        for (const mutation of mutations) {
+          if (
+            mutation.type === "attributes" &&
+            mutation.attributeName === "data-theme"
+          ) {
+            const newTheme = getCurrentTheme();
+            setGiscusTheme(newTheme);
+          }
+        }
+      });
+
+      observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ["data-theme"],
+      });
+    }
+
+    // 等待 DOM 和 Giscus 加载完成
+    function waitForGiscus() {
+      const iframe = document.querySelector(".giscus-frame");
+      if (iframe) {
+        initGiscus();
+      } else {
+        // Giscus 可能还在加载中，等待一小段时间
+        setTimeout(waitForGiscus, 500);
+      }
+    }
+
+    // 启动
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", function () {
+        waitForGiscus();
+        observeThemeChanges();
+      });
+    } else {
+      waitForGiscus();
+      observeThemeChanges();
+    }
+
+    // View Transitions 后重新绑定
+    document.addEventListener("astro:after-swap", function () {
+      waitForGiscus();
+      observeThemeChanges();
+    });
+  })();
+</script>
+
+<script
+  src="https://giscus.app/client.js"
+  data-repo={repo}
+  data-repo-id={repoId}
+  data-category={category}
+  data-category-id={categoryId}
+  data-mapping={mapping}
+  data-strict={strict}
+  data-reactions-enabled={reactionsEnabled}
+  data-emit-metadata={emitMetadata}
+  data-input-position={inputPosition}
+  data-theme={defaultTheme}
+  data-lang={lang}
+  data-loading={loading}
+  crossorigin="anonymous"
+  async
+></script>
+
+<style>
+  .giscus {
+    padding: 1rem 0;
+  }
+</style>
