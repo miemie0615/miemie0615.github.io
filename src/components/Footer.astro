@@ -70,10 +70,28 @@ const showBusuanzi =
           showBusuanzi && (
             <>
               <span class="hidden sm:inline text-muted-foreground/40">·</span>
-              <span class="text-muted-foreground text-xs">
-                访客 <span id="busuanzi_value_site_uv" class="text-accent font-medium">0</span>
+              <!--
+                data-busuanzi-stats: 不蒜子统计容器
+                - 初始状态为 data-status="loading"，显示 "--" 占位符
+                - 不蒜子脚本成功注入数据后，JS 会将状态切换为 "ready"
+                - 服务不可用时状态保持 "loading"，显示轻量虚线占位，不显示虚假数字
+                - min-width 预留空间，防止数字变化导致的布局跳动 (CLS)
+              -->
+              <span
+                class="text-muted-foreground text-xs"
+                data-busuanzi-stats
+                data-status="loading"
+              >
+                访客
+                <span
+                  id="busuanzi_value_site_uv"
+                  class="busuanzi-num text-accent font-medium"
+                >--</span>
                 &nbsp;·&nbsp; 浏览
-                <span id="busuanzi_value_site_pv" class="text-accent font-medium">0</span>
+                <span
+                  id="busuanzi_value_site_pv"
+                  class="busuanzi-num text-accent font-medium"
+                >--</span>
               </span>
             </>
           )

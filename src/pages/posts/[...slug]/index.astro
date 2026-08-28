@@ -15,7 +15,7 @@ import ShareLinks from "./_components/ShareLinks.astro";
 import BackButton from "./_components/BackButton.astro";
 import BackToTopButton from "./_components/BackToTopButton.astro";
 import AdjacentPostNav from "./_components/AdjacentPostNav.astro";
-import Giscus from "@/components/Giscus.astro";
+import Waline from "@/components/Waline.astro";
 import config from "@/config";
 
 export async function getStaticPaths() {
@@ -196,7 +196,7 @@ const ogImage = ogImageUrl
 
     <ShareLinks />
 
-    {enableComment !== false && <Giscus />}
+    {enableComment !== false && config.features.waline !== false && <Waline />}
 
     <hr class="ink-divider my-8" />
 

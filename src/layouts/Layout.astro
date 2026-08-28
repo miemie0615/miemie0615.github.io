@@ -133,18 +133,273 @@ const rssHref = getRelativeLocaleUrl(
           // 不蒜子：零配置，按域名自动统计 PV/UV
           // pure 版本仅显示计数；完整版本自动追踪 SPA 页面切换
           <>
+            <!--
+              不蒜子核心脚本 (async 异步加载，不阻塞页面渲染)
+              使用 referrerpolicy="no-referrer" 防止因 Referer 被拦截
+              crossorigin="anonymous" 允许跨域资源加载
+            -->
             <script
               is:inline
               src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"
               async
+              defer
+              crossorigin="anonymous"
+              referrerpolicy="no-referrer"
             ></script>
-            <script is:inline>
-              // SPA 切换时重新触发不蒜子页面统计
-              document.addEventListener("astro:page-load", function () {
-                if (typeof busuanzi_pageview === "function") {
-                  busuanzi_pageview();
+
+            <!--
+              不蒜子健康检查 + 自动恢复脚本
+              ------------------------------------------------------------
+              功能：
+              1. 检测不蒜子脚本是否成功加载并注入数据到 DOM
+              2. 服务不可用时维持 "loading" 状态，显示 "--" 占位符，不报错不跳布局
+              3. 超时(6s)后标记为 "offline" 状态，数字区域显示轻量虚线样式
+              4. 每 30s 轮询重试，服务恢复后自动更新为真实数字
+              5. SPA 页面切换时重新触发检测
+              6. 网络恢复事件 (online) 立即触发重试
+            -->
+            <script is:inline data-busuanzi-watchdog>
+              (function () {
+                "use strict";
+
+                // 配置参数
+                var LOAD_TIMEOUT = 6000;      // 首次加载超时时间 (ms)
+                var RETRY_INTERVAL = 30000;   // 服务恢复轮询间隔 (ms)
+                var CHECK_INTERVAL = 500;      // 加载中轮询检测间隔 (ms)
+                var MAX_CHECK_ATTEMPTS = LOAD_TIMEOUT / CHECK_INTERVAL;
+
+                var uvEl = null;
+                var pvEl = null;
+                var container = null;
+                var checkCount = 0;
+                var watchdogTimer = null;
+                var retryTimer = null;
+                var isOffline = false;
+
+                /**
+                 * 获取统计数字 DOM 元素
+                 */
+                function getElements() {
+                  if (!container) {
+                    container = document.querySelector("[data-busuanzi-stats]");
+                  }
+                  if (!uvEl) {
+                    uvEl = document.getElementById("busuanzi_value_site_uv");
+                  }
+                  if (!pvEl) {
+                    pvEl = document.getElementById("busuanzi_value_site_pv");
+                  }
+                  return container && uvEl && pvEl;
                 }
-              });
+
+                /**
+                 * 检查不蒜子是否已成功注入真实数据
+                 * 判断标准：元素文本不为空、不为 "--"、且不全为 0（排除新站点刚启用的情况）
+                 */
+                function hasRealData() {
+                  if (!getElements()) return false;
+                  var uv = (uvEl.textContent || "").trim();
+                  var pv = (pvEl.textContent || "").trim();
+                  // 不蒜子注入的数字为纯数字字符串，至少 1 位
+                  // 新站点可能显示 "0"，这是有效的真实数据
+                  return /^\d+$/.test(uv) && /^\d+$/.test(pv);
+                }
+
+                /**
+                 * 从旧版不蒜子脚本获取数据
+                 * 如果 pure 版本脚本未自动注入，尝试手动请求 API
+                 */
+                function tryManualFetch() {
+                  // 不蒜子 API：获取站点统计
+                  var apiUrl = "https://busuanzi.ibruce.info/v2?site=" +
+                    encodeURIComponent(window.location.hostname);
+
+                  fetch(apiUrl, {
+                    method: "GET",
+                    mode: "cors",
+                    referrerPolicy: "no-referrer",
+                    headers: { "Accept": "application/json" }
+                  })
+                    .then(function (res) {
+                      if (!res.ok) throw new Error("HTTP " + res.status);
+                      return res.json();
+                    })
+                    .then(function (data) {
+                      if (data && data.success && data.data) {
+                        var d = data.data;
+                        if (d.uv && uvEl) uvEl.textContent = String(d.uv);
+                        if (d.pv && pvEl) pvEl.textContent = String(d.pv);
+                        markReady();
+                      }
+                    })
+                    .catch(function () {
+                      // 静默失败，不触发错误
+                    });
+                }
+
+                /**
+                 * 标记为就绪状态：真实数据已显示
+                 */
+                function markReady() {
+                  if (!container) return;
+                  container.setAttribute("data-status", "ready");
+                  isOffline = false;
+                  stopWatchdog();
+                  stopRetry();
+                }
+
+                /**
+                 * 标记为离线状态：服务不可用
+                 */
+                function markOffline() {
+                  if (!container) return;
+                  container.setAttribute("data-status", "offline");
+                  isOffline = true;
+                  stopWatchdog();
+                  // 启动定期重试
+                  startRetry();
+                }
+
+                /**
+                 * 标记为加载中状态
+                 */
+                function markLoading() {
+                  if (!container) return;
+                  container.setAttribute("data-status", "loading");
+                }
+
+                /**
+                 * 启动 watchdog 轮询检测
+                 */
+                function startWatchdog() {
+                  stopWatchdog();
+                  checkCount = 0;
+                  markLoading();
+
+                  watchdogTimer = setInterval(function () {
+                    checkCount++;
+
+                    // 先检查不蒜子 pure 版本是否已自动注入
+                    if (hasRealData()) {
+                      // 不蒜子已注入数据，检查是否全为 0（新站点有效数据）
+                      markReady();
+                      return;
+                    }
+
+                    // 超时判断
+                    if (checkCount >= MAX_CHECK_ATTEMPTS) {
+                      // 尝试手动 fetch 一次作为备选
+                      tryManualFetch();
+                      // 短暂等待 manual fetch 结果
+                      setTimeout(function () {
+                        if (hasRealData()) {
+                          markReady();
+                        } else {
+                          markOffline();
+                        }
+                      }, 1500);
+                      stopWatchdog();
+                      return;
+                    }
+                  }, CHECK_INTERVAL);
+                }
+
+                /**
+                 * 停止 watchdog
+                 */
+                function stopWatchdog() {
+                  if (watchdogTimer) {
+                    clearInterval(watchdogTimer);
+                    watchdogTimer = null;
+                  }
+                }
+
+                /**
+                 * 启动定期重试（仅在离线状态时）
+                 */
+                function startRetry() {
+                  stopRetry();
+                  retryTimer = setInterval(function () {
+                    // 重新检查不蒜子脚本是否后来加载成功
+                    if (hasRealData()) {
+                      markReady();
+                      return;
+                    }
+                    // 尝试手动 fetch
+                    tryManualFetch();
+                  }, RETRY_INTERVAL);
+                }
+
+                /**
+                 * 停止重试
+                 */
+                function stopRetry() {
+                  if (retryTimer) {
+                    clearInterval(retryTimer);
+                    retryTimer = null;
+                  }
+                }
+
+                /**
+                 * SPA 页面切换时重新检测
+                 */
+                function handlePageLoad() {
+                  // 如果已有真实数据，不重新检测（避免闪烁）
+                  if (hasRealData()) {
+                    markReady();
+                    return;
+                  }
+                  // 重新开始检测
+                  startWatchdog();
+                }
+
+                /**
+                 * 网络恢复时立即重试
+                 */
+                function handleOnline() {
+                  if (isOffline) {
+                    // 立即触发一次重试
+                    if (hasRealData()) {
+                      markReady();
+                    } else {
+                      tryManualFetch();
+                      // 重新启动 watchdog 等待数据注入
+                      startWatchdog();
+                    }
+                  }
+                }
+
+                /**
+                 * 初始化：等待 DOM 就绪后启动检测
+                 */
+                function init() {
+                  if (!getElements()) {
+                    // DOM 可能还未就绪，稍后重试
+                    setTimeout(init, 100);
+                    return;
+                  }
+
+                  // 检查不蒜子脚本是否已在加载期间注入数据
+                  if (hasRealData()) {
+                    markReady();
+                  } else {
+                    startWatchdog();
+                  }
+
+                  // 注册 SPA 页面切换事件
+                  document.addEventListener("astro:page-load", handlePageLoad);
+
+                  // 注册网络恢复事件
+                  window.addEventListener("online", handleOnline);
+                }
+
+                // DOMContentLoaded 后初始化
+                if (document.readyState === "loading") {
+                  document.addEventListener("DOMContentLoaded", init);
+                } else {
+                  init();
+                }
+              })();
             </script>
           </>
         ) : features.analytics.provider === "ga4" ? (

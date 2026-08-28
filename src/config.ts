@@ -34,6 +34,8 @@ const config: ResolvedAstroPaperConfig = {
     editPost: userConfig.features?.editPost ?? { enabled: false },
     search: userConfig.features?.search ?? "pagefind",
     analytics: userConfig.features?.analytics ?? false,
+    // Waline 评论系统：默认未启用，需配置 serverURL 后生效
+    waline: userConfig.features?.waline ?? false,
   },
   socials: userConfig.socials ?? [],
   shareLinks: userConfig.shareLinks ?? [],

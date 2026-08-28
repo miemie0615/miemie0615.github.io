@@ -177,11 +177,11 @@
   }
 
 /* ============================================================
-   移动端适配：Giscus 评论区防溢出 + 文章图片自适应
+   移动端适配：Waline 评论区防溢出 + 文章图片自适应
    ============================================================ */
 
-/* Giscus 容器与 iframe 响应式 */
-.giscus {
+/* Waline 容器响应式 */
+.waline {
   max-width: 100%;
   overflow-x: hidden;
 }
@@ -205,4 +205,76 @@
 
 .content-image:hover {
   transform: scale(1.01);
+}
+
+/* ============================================================
+   不蒜子统计数字状态样式
+   ------------------------------------------------------------
+   三种状态：
+   - loading: 初始加载中，显示 "--" 占位符，低透明度
+   - ready:   数据就绪，正常显示
+   - offline: 服务不可用，数字不可见但布局稳定
+   核心设计原则：
+   1. 每个数字预留 min-width (约 4 位数字宽度)，防止数据到达时布局跳动 (CLS)
+   2. 使用 opacity 控制可见性而非 display，确保布局稳定
+   3. loading 状态用虚线边框 + 文字占位，视觉上轻量不突兀
+   ============================================================ */
+
+/* 不蒜子统计容器 */
+[data-busuanzi-stats] {
+  /* 确保容器不塌陷，预留最小宽度 */
+  min-width: 0;
+}
+
+/* 统计数字基础样式：预留空间防跳动 */
+.busuanzi-num {
+  /* 预留约 4-5 位数字宽度 (0.6ch 每字 × 4.5 ≈ 2.7ch，再加 padding) */
+  display: inline-block;
+  min-width: 2.8ch;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  /* 过渡动画：状态切换时平滑过渡 */
+  transition: opacity 0.4s ease, color 0.4s ease;
+}
+
+/* 状态一：加载中 */
+[data-busuanzi-stats][data-status="loading"] .busuanzi-num {
+  opacity: 0.5;
+  /* 虚线底部边框表示加载中状态 */
+  border-bottom: 1px dashed currentColor;
+  padding-bottom: 1px;
+}
+
+/* 状态二：数据就绪 */
+[data-busuanzi-stats][data-status="ready"] .busuanzi-num {
+  opacity: 1;
+  border-bottom: none;
+  /* 数字就绪后用平滑淡入 */
+  animation: busuanzi-fade-in 0.6s ease;
+}
+
+/* 状态三：服务离线 */
+[data-busuanzi-stats][data-status="offline"] .busuanzi-num {
+  opacity: 0.3;
+  border-bottom: 1px dotted currentColor;
+  padding-bottom: 1px;
+}
+
+/* 就绪状态淡入动画 */
+@keyframes busuanzi-fade-in {
+  from {
+    opacity: 0.3;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 减少动画偏好时禁用动画，提升可访问性 */
+@media (prefers-reduced-motion: reduce) {
+  [data-busuanzi-stats][data-status="ready"] .busuanzi-num {
+    animation: none;
+  }
 }
