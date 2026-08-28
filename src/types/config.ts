@@ -70,27 +70,6 @@ interface FeaturesConfig {
     | { provider: "busuanzi" }
     | { provider: "ga4"; id: string }
     | false;
-  /**
-   * Waline 评论系统配置
-   * 需要独立部署 Waline 后端服务
-   * 部署指南: https://waline.js.org/guide/get-started.html
-   *
-   * 推荐方案: Vercel + LeanCloud
-   * 1. 在 LeanCloud 创建数据库（国际版）
-   * 2. 在 Vercel 部署 Waline 模板
-   * 3. 配置环境变量 LEAN_ID, LEAN_KEY, LEAN_MASTER_KEY
-   * 4. 绑定自定义域名（可选，解决国内访问问题）
-   */
-  waline?:
-    | {
-        /** Waline 后端服务地址，如 https://your-waline.vercel.app */
-        serverURL: string;
-        /** 界面语言，默认 zh-CN */
-        lang?: string;
-        /** 是否启用页面浏览量统计，默认 true */
-        pageview?: boolean;
-      }
-    | false;
 }
 
 interface SocialLink {
@@ -152,10 +131,6 @@ type ResolvedSiteConfig = Required<
 export interface ResolvedAstroPaperConfig {
   site: ResolvedSiteConfig;
   posts: Required<PostsConfig>;
-  /**
-   * Features config with defaults applied.
-   * Note: waline may be false when not configured.
-   */
   features: {
     lightAndDarkMode: boolean;
     dynamicOgImage: boolean;
@@ -164,7 +139,6 @@ export interface ResolvedAstroPaperConfig {
     editPost: FeaturesConfig["editPost"];
     search: FeaturesConfig["search"];
     analytics: FeaturesConfig["analytics"];
-    waline: FeaturesConfig["waline"];
   };
   socials: SocialLink[];
   shareLinks: ShareLink[];

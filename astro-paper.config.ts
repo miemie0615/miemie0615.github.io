@@ -32,27 +32,6 @@ export default defineAstroPaperConfig({
     analytics: {
       provider: "busuanzi",
     },
-    // 评论系统：Waline
-    // 后端部署方案（LeanCloud 已停服，推荐以下方案）：
-    //
-    // 方案 A【最简单·推荐】Vercel + Neon（官方默认）
-    //   1. Vercel 一键部署 Waline 模板 → 在 Storage 页创建 Neon 数据库（PostgreSQL）
-    //   2. 绑定自定义域名（国内访问必需）
-    //   参考: https://waline.js.org/guide/deploy/vercel.html
-    //
-    // 方案 B【国内更快】Vercel + MongoDB Atlas
-    //   1. 注册 MongoDB Atlas（免费 512MB，永久）
-    //   2. 创建 M0 集群（选香港节点），获取连接信息
-    //   3. Vercel 部署 Waline，配置环境变量 MONGO_HOST/MONGO_DB/MONGO_USER/MONGO_PASSWORD 等
-    //   参考: https://waline.js.org/guide/database.html#mongodb
-    //
-    // 方案 C【自建】宝塔面板 + MySQL + Waline
-    //   在自己的服务器上部署 Waline 后端，使用 MySQL 存储
-    //   参考: https://waline.js.org/guide/deploy/vps.html
-    //
-    // 部署完成后，将 serverURL 填入下方即可启用：
-    // waline: { serverURL: "https://你的-waline-服务地址", lang: "zh-CN" },
-    waline: false,
   },
   socials: [
     { name: "douyin",       url: "https://v.douyin.com/hAr8uiL-yCg/", linkTitle: "抖音" },
