@@ -2,7 +2,7 @@ import { defineAstroPaperConfig } from "./src/types/config";
 
 export default defineAstroPaperConfig({
   site: {
-    url: "https://miemie0615.github.io/",
+    url: "https://yihome.shop",
     title: "一间工作室",
     description: "BJD娃衣、国风周边、平面设计定制工作室",
     author: "一间工作室",
