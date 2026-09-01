@@ -136,9 +136,11 @@ export interface ResolvedAstroPaperConfig {
     dynamicOgImage: boolean;
     showArchives: boolean;
     showBackButton: boolean;
-    editPost: FeaturesConfig["editPost"];
-    search: FeaturesConfig["search"];
-    analytics: FeaturesConfig["analytics"];
+    // config.ts 中已通过 ?? 给了默认值 { enabled: false }，
+    // 所以这里类型收窄为确定的联合类型，不包含 undefined
+    editPost: NonNullable<FeaturesConfig["editPost"]>;
+    search: NonNullable<FeaturesConfig["search"]>;
+    analytics: NonNullable<FeaturesConfig["analytics"]>;
   };
   socials: SocialLink[];
   shareLinks: ShareLink[];

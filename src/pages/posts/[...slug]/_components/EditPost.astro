@@ -13,7 +13,10 @@ type Props = {
 const { hideEditPost, post, class: className = "" } = Astro.props;
 
 const editPost = config.features.editPost;
-const href = editPost.enabled ? `${editPost.url}${post.filePath}` : "";
+// 通过 enabled 字段做类型守卫：只有 enabled === true 时，联合类型才包含 url 属性
+const href = editPost.enabled
+  ? `${editPost.url}${post.filePath}`
+  : "";
 const showEditPost = editPost.enabled && !hideEditPost && href.trim() !== "";
 
 const t = useTranslations(Astro.currentLocale);
