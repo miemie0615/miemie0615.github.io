@@ -34,7 +34,7 @@
  */
 ---
 
-<!-- 场景容器：fixed 右下角，包裹 canvas + 气泡 + 按钮 -->
+<!-- 场景容器：fixed 左下角，包裹 canvas + 气泡（不含切换按钮） -->
 <div class="live2d-scene" id="live2dScene">
 
   <!-- canvas 必须预先确定好宽高，core 用 getContext("webgl", {premultipliedAlpha:true}) 来渲染 -->
@@ -48,14 +48,16 @@
 
   <!-- 提示气泡 -->
   <div id="live2d-tips" class="live2d-tips"></div>
-
-  <!-- 显示/隐藏按钮 -->
-  <button id="live2d-toggle" class="live2d-toggle" title="显示/隐藏洛天依">
-    <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-      <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/>
-    </svg>
-  </button>
 </div>
+
+<!-- 显示/隐藏按钮：独立 fixed 元素，不跟着 scene 一起隐藏
+     隐藏后仍可见 → 用来把天依叫出来 -->
+<button id="live2d-toggle" class="live2d-toggle" title="显示/隐藏洛天依">
+  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+    <!-- 默认：向下箭头（天依可见时，点=隐藏） -->
+    <path id="live2d-toggle-icon" d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/>
+  </svg>
+</button>
 
 <!-- 注入官方 core（Cubism 2.0 Live2DFramework + Live2DModelWebGL） -->
 <script is:inline src="/live2d/js/live2d.js"></script>
@@ -203,17 +205,33 @@
     window.addEventListener("click", ourClickHandler);
   }
 
-  /** 显示/隐藏 */
+  /** 显示/隐藏
+   *  scene（canvas + 气泡）会隐藏，但 toggle 按钮独立可见，
+   *  且图标会切换：展开箭头（让你点=显示） ↔ 向下箭头（点=隐藏）
+   */
   function setHidden(v) {
     hidden = v;
     var wrap = document.querySelector(".live2d-scene");
-    if (!wrap) return;
+    var btn = document.getElementById("live2d-toggle");
+    var icon = document.getElementById("live2d-toggle-icon");
+    if (!wrap || !btn || !icon) return;
+
     if (hidden) {
+      // 收起天依
       wrap.classList.add("live2d-hidden");
       localStorage.setItem("live2d_hidden", "1");
+      // 按钮变小 + 图标变成展开箭头
+      btn.classList.add("live2d-toggle-collapsed");
+      icon.setAttribute("d", "M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z");
+      btn.title = "显示洛天依";
     } else {
+      // 展开天依
       wrap.classList.remove("live2d-hidden");
       localStorage.removeItem("live2d_hidden");
+      // 按钮恢复 + 图标变回向下箭头
+      btn.classList.remove("live2d-toggle-collapsed");
+      icon.setAttribute("d", "M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z");
+      btn.title = "隐藏洛天依";
       if (loaded) showTips("天依回来啦~", 2000);
     }
   }
@@ -222,14 +240,22 @@
   function start() {
     if (isMobile()) {
       var wrap = document.querySelector(".live2d-scene");
+      var btn = document.getElementById("live2d-toggle");
       if (wrap) wrap.style.display = "none";
+      if (btn) btn.style.display = "none";
       return;
     }
 
     hidden = localStorage.getItem("live2d_hidden") === "1";
     if (hidden) {
+      // 从 localStorage 恢复隐藏状态
       var wrap = document.querySelector(".live2d-scene");
       if (wrap) wrap.classList.add("live2d-hidden");
+      // 同步按钮状态
+      var btn = document.getElementById("live2d-toggle");
+      var icon = document.getElementById("live2d-toggle-icon");
+      if (btn) btn.classList.add("live2d-toggle-collapsed");
+      if (icon) icon.setAttribute("d", "M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z");
     }
 
     fitCanvas();
@@ -345,33 +371,49 @@
   transform: translateX(-50%) translateY(0);
 }
 
-/* ===== 显示/隐藏按钮 ===== */
+/* ===== 显示/隐藏按钮：独立 fixed，跟着 scene 左下角
+   天依可见时按钮在 canvas 右上角；天依隐藏时按钮变小、更靠左 */
 .live2d-toggle {
-  position: absolute;
-  top: -14px;
-  right: -14px;
+  position: fixed;
+  left: 286px;              /* scene 左下角 left:30px + canvas 宽 280px - 4px 对齐 */
+  bottom: 246px;            /* scene bottom:0 + canvas 高 250px - 4px */
   width: 28px;
   height: 28px;
   border-radius: 50%;
   border: 1px solid var(--border);
   background: var(--background);
+  color: var(--foreground);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 8px color-mix(in srgb, var(--foreground) 12%, transparent);
-  transition: transform 0.2s ease;
-  z-index: 3;
+  transition: transform 0.2s ease, left 0.35s ease, bottom 0.35s ease, opacity 0.35s ease;
+  z-index: 10000;           /* 比 scene 的 9999 更高，确保永远可点 */
 }
 .live2d-toggle:hover { transform: scale(1.12); }
+
+/* ===== 天依隐藏时：按钮缩小并归位到左下角 ===== */
+.live2d-toggle.live2d-toggle-collapsed {
+  width: 32px;
+  height: 32px;
+  left: 30px;               /* scene 原来的 left */
+  bottom: 0;                /* scene 原来的 bottom */
+  opacity: 0.85;
+}
+.live2d-toggle.live2d-toggle-collapsed:hover {
+  transform: scale(1.15);
+  opacity: 1;
+}
 
 /* ===== 深色模式微调 ===== */
 html[data-theme="dark"] .live2d-canvas {
   filter: drop-shadow(0 4px 16px color-mix(in srgb, var(--accent) 12%, transparent));
 }
 
-/* ===== 响应式 ===== */
+/* ===== 响应式：移动端彻底隐藏 Live2D（包含 scene + toggle 按钮）===== */
 @media (max-width: 768px) {
   .live2d-scene { display: none !important; }
+  .live2d-toggle { display: none !important; }
 }
 </style>
