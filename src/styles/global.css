@@ -20,6 +20,128 @@
   [role="button"]:not(:disabled) {
     cursor: pointer;
   }
+
+  /* ============================================================
+     Ketro 自定义鼠标光标（支持深/浅模式自动切换）
+     ------------------------------------------------------------
+     浅色模式使用 ketro light，深色模式使用 ketro dark。
+     .ani 动画光标仅 Windows 浏览器支持，Mac/Unix 会 fallback
+     到同名 .cur 文件；同时内置系统光标作为最终兜底。
+     文件存放于 /public/cursors/ketro/{dark|light}/
+     ============================================================ */
+
+  /* --- 浅色模式（默认） --- */
+  html[data-theme="light"],
+  html:not([data-theme]) {
+    /* 默认箭头 */
+    cursor: url("/cursors/ketro/light/-Normal Select.cur"), default;
+  }
+  html[data-theme="light"] *:not(iframe),
+  html:not([data-theme]) *:not(iframe) {
+    cursor: url("/cursors/ketro/light/-Normal Select.cur"), default;
+  }
+  /* 链接 / 按钮 / 可点击元素 */
+  html[data-theme="light"] a,
+  html[data-theme="light"] button,
+  html[data-theme="light"] [role="button"],
+  html[data-theme="light"] [onclick],
+  html:not([data-theme]) a,
+  html:not([data-theme]) button,
+  html:not([data-theme]) [role="button"],
+  html:not([data-theme]) [onclick] {
+    cursor: url("/cursors/ketro/light/-Link Select.cur"), pointer;
+  }
+  /* 文本选择 */
+  html[data-theme="light"] input[type="text"],
+  html[data-theme="light"] input[type="search"],
+  html[data-theme="light"] input[type="email"],
+  html[data-theme="light"] input[type="password"],
+  html[data-theme="light"] input[type="number"],
+  html[data-theme="light"] textarea,
+  html[data-theme="light"] [contenteditable],
+  html:not([data-theme]) input[type="text"],
+  html:not([data-theme]) input[type="search"],
+  html:not([data-theme]) input[type="email"],
+  html:not([data-theme]) input[type="password"],
+  html:not([data-theme]) input[type="number"],
+  html:not([data-theme]) textarea,
+  html:not([data-theme]) [contenteditable] {
+    cursor: url("/cursors/ketro/light/-Text Select.cur"), text;
+  }
+  /* 垂直调整大小 */
+  html[data-theme="light"] .cursor-ns-resize,
+  html:not([data-theme]) .cursor-ns-resize {
+    cursor: url("/cursors/ketro/light/-Vertical Resize.cur"), ns-resize;
+  }
+  /* 水平调整大小 */
+  html[data-theme="light"] .cursor-ew-resize,
+  html:not([data-theme]) .cursor-ew-resize {
+    cursor: url("/cursors/ketro/light/-Horizontal Resize.cur"), ew-resize;
+  }
+  /* 对角线调整大小 1 */
+  html[data-theme="light"] .cursor-nwse-resize,
+  html:not([data-theme]) .cursor-nwse-resize {
+    cursor: url("/cursors/ketro/light/-Diagonal Resize 1.cur"), nwse-resize;
+  }
+  /* 对角线调整大小 2 */
+  html[data-theme="light"] .cursor-nesw-resize,
+  html:not([data-theme]) .cursor-nesw-resize {
+    cursor: url("/cursors/ketro/light/-Diagonal Resize 2.cur"), nesw-resize;
+  }
+  /* 移动 */
+  html[data-theme="light"] .cursor-move,
+  html:not([data-theme]) .cursor-move {
+    cursor: url("/cursors/ketro/light/-Move.cur"), move;
+  }
+  /* 不可用 */
+  html[data-theme="light"] .cursor-not-allowed,
+  html[data-theme="light"] button:disabled,
+  html:not([data-theme]) .cursor-not-allowed,
+  html:not([data-theme]) button:disabled {
+    cursor: url("/cursors/ketro/light/-Unavailable.cur"), not-allowed;
+  }
+
+  /* --- 深色模式 --- */
+  html[data-theme="dark"] {
+    cursor: url("/cursors/ketro/dark/-Normal Select.cur"), default;
+  }
+  html[data-theme="dark"] *:not(iframe) {
+    cursor: url("/cursors/ketro/dark/-Normal Select.cur"), default;
+  }
+  html[data-theme="dark"] a,
+  html[data-theme="dark"] button,
+  html[data-theme="dark"] [role="button"],
+  html[data-theme="dark"] [onclick] {
+    cursor: url("/cursors/ketro/dark/-Link Select.cur"), pointer;
+  }
+  html[data-theme="dark"] input[type="text"],
+  html[data-theme="dark"] input[type="search"],
+  html[data-theme="dark"] input[type="email"],
+  html[data-theme="dark"] input[type="password"],
+  html[data-theme="dark"] input[type="number"],
+  html[data-theme="dark"] textarea,
+  html[data-theme="dark"] [contenteditable] {
+    cursor: url("/cursors/ketro/dark/-Text Select.cur"), text;
+  }
+  html[data-theme="dark"] .cursor-ns-resize {
+    cursor: url("/cursors/ketro/dark/-Vertical Resize.cur"), ns-resize;
+  }
+  html[data-theme="dark"] .cursor-ew-resize {
+    cursor: url("/cursors/ketro/dark/-Horizontal Resize.cur"), ew-resize;
+  }
+  html[data-theme="dark"] .cursor-nwse-resize {
+    cursor: url("/cursors/ketro/dark/-Diagonal Resize 1.cur"), nwse-resize;
+  }
+  html[data-theme="dark"] .cursor-nesw-resize {
+    cursor: url("/cursors/ketro/dark/-Diagonal Resize 2.cur"), nesw-resize;
+  }
+  html[data-theme="dark"] .cursor-move {
+    cursor: url("/cursors/ketro/dark/-Move.cur"), move;
+  }
+  html[data-theme="dark"] .cursor-not-allowed,
+  html[data-theme="dark"] button:disabled {
+    cursor: url("/cursors/ketro/dark/-Unavailable.cur"), not-allowed;
+  }
 }
 
 @utility max-w-app {
@@ -277,4 +399,186 @@
   [data-busuanzi-stats][data-status="ready"] .busuanzi-num {
     animation: none;
   }
+}
+
+/* ============================================================
+   点击飘字特效：点击一次出一个"一间工作室"汉字
+   ------------------------------------------------------------
+   动画节奏参考 CSDN setInterval 15ms/帧 实现：
+   - 总时长 ~0.94s（与原代码 62 帧 × 15ms ≈ 937ms 对齐）
+   - 透明度：瞬间显现 → 线性递减到 0
+   - 位移：匀速向上 ~60px，水平带 ±25° 随机偏移
+   - 缩放：从 1 缓慢微增到 ~1.3（原版每帧 +0.002 的递增）
+   - 使用 --accent 主题色 + 楷体，营造印章落款意境
+   - 尊重 prefers-reduced-motion
+   ============================================================ */
+
+/* 特效容器：铺满视口、置于最顶层、不拦截任何鼠标事件 */
+.char-trail {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* 单个汉字粒子 */
+.char-trail__item {
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--accent);
+  font-size: 28px;
+  font-weight: 600;
+  font-family: "KaiTi", "STKaiti", "楷体", serif;
+  line-height: 1;
+  white-space: nowrap;
+  will-change: transform, opacity;
+  /* 初始：正好在点击位置，立即显现 */
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1) rotate(var(--char-rot, 0deg));
+  /* 与参考代码总时长对齐：~940ms，线性匀速 */
+  animation: char-pop-up 0.94s linear forwards;
+  /* 参考代码无阴影，这里保持简洁 */
+  cursor: default;
+  user-select: none;
+}
+
+/* 关键帧：完全复刻参考代码 setInterval 动画节奏
+   0%     点击瞬间，opacity=1，scale=1，位于点击点
+   100%   飘到终点，opacity=0，scale=1.3（微增，与原版 0.002/帧 对齐）
+          向上位移由 --char-dy 控制（负值，默认约 -60px）
+          水平位移由 --char-dx 控制（±25° 随机摇摆）
+*/
+@keyframes char-pop-up {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1) rotate(var(--char-rot, 0deg));
+  }
+  100% {
+    opacity: 0;
+    transform: translate(
+      calc(-50% + var(--char-dx, 0px)),
+      calc(-50% + var(--char-dy, -60px))
+    ) scale(1.3) rotate(0deg);
+  }
+}
+
+/* 减少动画偏好时：仅短暂显示，不做位移 */
+@media (prefers-reduced-motion: reduce) {
+  .char-trail__item {
+    font-size: 22px;
+    animation: char-pop-simple 0.7s ease-out forwards;
+  }
+}
+@keyframes char-pop-simple {
+  0% { opacity: 0; }
+  40% { opacity: 0.7; }
+  100% { opacity: 0; }
+}
+
+/* ============================================================
+   樱花飘落背景层（自动持续飘落）
+   ------------------------------------------------------------
+   参考用户提供的樱花动图效果：
+   - 花瓣从屏幕顶部随机位置落下
+   - 下落过程带水平摇摆和慢速旋转
+   - 粉白渐变半透明，深浅模式自动适配
+   - 背景层 z-index 在正文之下、宣纸底纹之上，不遮挡阅读
+   - 控制同时存在的花瓣数量（≤ 28），性能友好
+   - 尊重 prefers-reduced-motion，触屏设备降频
+   ============================================================ */
+
+/* 背景层容器：fixed 铺满，z-index:1 覆盖正文整页（但仍低于飘字特效 z-index:9999），
+   pointer-events:none 保证不拦截任何点击穿透到页面内容。 */
+.sakura-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* 单个花瓣：SVG 内联形状 + CSS keyframes 驱动
+   --sakura-x : 水平摇摆幅度（随机，0~60px）
+   --sakura-d : 下落总距离（通常 = 视口高 + 200px）
+   --sakura-r : 旋转角度（随机，-180° ~ 180°）
+   --sakura-dur : 动画时长（JS 动态写入，7~12s）
+   --sakura-delay : 起始延迟（JS 动态写入）
+*/
+.sakura-petal {
+  position: absolute;
+  top: -40px;                   /* 起点在屏幕外上方 */
+  width: var(--sakura-size, 18px);
+  height: var(--sakura-size, 18px);
+  /* 核心动画：下落 + 摇摆 + 旋转，JS 覆盖 duration 做随机化 */
+  animation: sakura-fall var(--sakura-dur, 9s) linear var(--sakura-delay, 0s) forwards;
+  will-change: transform, opacity;
+  /* SVG 内联花瓣用 currentColor 继承颜色 */
+  color: var(--sakura-color, rgba(255, 182, 193, 0.75));
+}
+
+/* 花瓣 SVG 背景：带粉色径向渐变，模拟半透明水彩质感
+   使用 currentColor 让 JS 注入的随机色生效（配合 filter: brightness/saturate 微调）
+   但简单起见，这里直接用固定粉白渐变 CSS，JS 只管大小速度即可
+*/
+.sakura-petal svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  /* 柔和粉白渐变 */
+  filter: drop-shadow(0 0 2px rgba(255, 170, 190, 0.35));
+}
+
+/* 下落动画关键帧：
+   top: -40px → 屏幕外底部（--sakura-d 由 JS 计算）
+   translateX: 0 → 摇摆 → -摇摆 → 摇摆（用 sin 曲线表达为 3 段近似）
+   rotate: 从 --sakura-r 开始旋转到 2 倍（慢速翻滚）
+   opacity: 中间淡入，底部渐隐消失
+*/
+@keyframes sakura-fall {
+  0% {
+    top: -40px;
+    left: var(--sakura-left, 50%);
+    transform: translate(0, 0) rotate(var(--sakura-r, 0deg));
+    opacity: 0;
+  }
+  8% {
+    /* 入场快速显现 */
+    opacity: 0.85;
+  }
+  30% {
+    transform: translate(calc(var(--sakura-x, 30px) * 0.6), 0) rotate(calc(var(--sakura-r, 0deg) * 1.2));
+  }
+  60% {
+    transform: translate(calc(var(--sakura-x, 30px) * -0.5), 0) rotate(calc(var(--sakura-r, 0deg) * 1.6));
+    opacity: 0.8;
+  }
+  100% {
+    top: var(--sakura-d, 100vh);
+    transform: translate(var(--sakura-x, 30px), 0) rotate(calc(var(--sakura-r, 0deg) * 2.2));
+    opacity: 0;
+  }
+}
+
+/* 深色模式下：花瓣颜色偏粉紫，整体更淡，避免太抢眼 */
+html[data-theme="dark"] .sakura-petal svg {
+  filter: drop-shadow(0 0 2px rgba(200, 120, 150, 0.25));
+}
+
+/* 减少动画偏好：仅显示固定数的花瓣静止悬浮，不做循环生成 */
+@media (prefers-reduced-motion: reduce) {
+  .sakura-petal {
+    animation: sakura-fall-simple 8s ease-out forwards;
+  }
+}
+@keyframes sakura-fall-simple {
+  0% { top: -40px; opacity: 0; }
+  15% { opacity: 0.6; }
+  100% { top: 100vh; opacity: 0; }
+}
+
+/* 小屏（<640px）：花瓣数量减半，降低设备压力 */
+@media (max-width: 640px) {
+  .sakura-bg::after { /* no-op, 真正的数量由 JS 控制 */ }
 }

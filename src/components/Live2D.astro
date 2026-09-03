@@ -1,900 +1,377 @@
 ---
 /**
- * 看板娘（Live2D Mascot）组件
+ * 洛天依 Live2D 看板娘
  *
- * 使用 live2d-widget (Cubism 2) 实现真实的 Live2D 动画角色：
- * - 支持 20+ 款精美模型（萌娘、初音、小帅哥、猫咪等）
- * - 动态加载 L2Dwidget.min.js，按需切换模型
- * - 点击互动、拖拽移动、气泡对话
- * - 适配深色/浅色主题 + 国风配色
- * - 移动端自动隐藏，延迟加载不阻塞首屏
+ * 模型来源：用户提供的 luotianyi-live2d-master（Cubism 2.0 / .moc）
+ * Core：官方 Cubism 2.0 Live2DFramework（live2d.js）
  *
- * 模型来源：https://github.com/xiazeyu/live2d-widget-models
- * 核心库：https://github.com/xiazeyu/live2d-widget.js
+ * 结构：
+ *   public/live2d/
+ *   ├── js/live2d.js          ← 官方 core（已打包好）
+ *   ├── model/tianyi/
+ *   │   ├── model.json        ← 转换自 model.json.php
+ *   │   ├── model.moc
+ *   │   ├── motions/*.mtn     ← 28 个动作
+ *   │   └── textures/1.png
+ *
+ * 特点：
+ *   - 纯官方 core，零额外依赖
+ *   - 点击头/身体触发对应动作（flick_head / tap_body）
+ *   - 右键互动、切换显示/隐藏
+ *   - 移动端自动隐藏
+ *   - 延迟加载（requestIdleCallback）不阻塞首屏
+ *
+ * 关于 live2d.js 的 API：
+ *   window.loadlive2d(canvasId, modelJsonPath, scale, offsetX, offsetY)
+ *   - canvasId   : 元素 id
+ *   - modelJsonPath : model.json 的 URL
+ *   - scale      : 缩放比例（建议 1.0~1.5）
+ *   - offsetX/Y  : 模型中心的偏移（0,0 居中）
+ *
+ *   它在内部用 XHR 加载 .moc / .mtn / texture，同域下自动跨域 OK。
+ *   模型加载好之后，自动挂好 click/move 事件处理（tapEvent/mouseMove 等），
+ *   直接 requestAnimationFrame 循环重绘，不需要我们再做。
  */
 ---
 
-<div id="mascot-container" class="mascot-container">
+<!-- 场景容器：fixed 右下角，包裹 canvas + 气泡 + 按钮 -->
+<div class="live2d-scene" id="live2dScene">
+
+  <!-- canvas 必须预先确定好宽高，core 用 getContext("webgl", {premultipliedAlpha:true}) 来渲染 -->
+  <canvas
+    id="live2dcanvas"
+    width="280"
+    height="250"
+    class="live2d-canvas"
+    aria-hidden="true"
+  ></canvas>
+
   <!-- 提示气泡 -->
-  <div id="mascot-tips" class="mascot-tips"></div>
+  <div id="live2d-tips" class="live2d-tips"></div>
 
-  <!-- 模型选择面板 -->
-  <div id="mascot-panel" class="mascot-panel" style="display: none;">
-    <div class="mascot-panel-header">
-      <span>选择模型</span>
-      <button id="mascot-panel-close" class="mascot-panel-close">×</button>
-    </div>
-    <div id="mascot-model-list" class="mascot-model-list"></div>
-  </div>
-</div>
-
-<!-- 工具栏（独立于容器，确保隐藏时仍可操作） -->
-<div class="mascot-tools">
-  <button class="mascot-tool-btn" data-action="model" title="切换模型">
-    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-      <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
-    </svg>
-  </button>
-  <button class="mascot-tool-btn" data-action="cheer" title="打气">
-    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-    </svg>
-  </button>
-  <button class="mascot-tool-btn" data-action="close" title="关闭">
-    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-      <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+  <!-- 显示/隐藏按钮 -->
+  <button id="live2d-toggle" class="live2d-toggle" title="显示/隐藏洛天依">
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+      <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/>
     </svg>
   </button>
 </div>
 
-<!-- 展开/收起按钮（独立于容器，确保始终可点击） -->
-<button id="mascot-toggle" class="mascot-toggle" title="显示/隐藏看板娘">
-  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-    <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/>
-  </svg>
-</button>
+<!-- 注入官方 core（Cubism 2.0 Live2DFramework + Live2DModelWebGL） -->
+<script is:inline src="/live2d/js/live2d.js"></script>
 
 <script is:inline>
 (function () {
   "use strict";
 
-  /* ============================================================
-     配置：可用的 Live2D 模型列表
-     ------------------------------------------------------------
-     每个模型来自 npm 包 live2d-widget-model-{name}
-     通过 unpkg CDN 加载，无需本地安装。
-     ============================================================ */
-  var MODELS = [
-    // —— 萌系少女 ——
-    { name: "shizuku",    label: "萌娘·Shizuku",   group: "girl",  desc: "经典白发萌娘" },
-    { name: "koharu",     label: "小可爱·Koharu",  group: "girl",  desc: "元气少女" },
-    { name: "hibiki",     label: "元气·Hibiki",    group: "girl",  desc: "活力四射" },
-    { name: "izumi",      label: "妹子·Izumi",     group: "girl",  desc: "温柔少女" },
-    { name: "miku",       label: "初音·Miku",      group: "girl",  desc: "初音未来" },
-    { name: "nico",       label: "Nico",           group: "girl",  desc: "俏皮少女" },
-    { name: "ni-j",       label: "Ni-j",           group: "girl",  desc: "邻家女孩" },
-    { name: "nipsilon",   label: "Nipsilon",       group: "girl",  desc: "酷帅少女" },
-    { name: "nito",       label: "Nito",           group: "girl",  desc: "文静少女" },
-    { name: "tsumiki",    label: "Tsumiki",        group: "girl",  desc: "长发少女" },
-    { name: "unitychan",  label: "Unitychan",      group: "girl",  desc: "Unity 娘" },
-    { name: "z16",        label: "小护士·Z16",     group: "girl",  desc: "护士姐姐" },
+  var MODEL_JSON = "/live2d/model/tianyi/model.json";
+  var CANVAS_ID = "live2dcanvas";
+  var SCALE = 0.9;       // 缩小适配左下角的扁画布（280×250）
+  var OFFSET_X = -15;    // 左偏，让天依整体居中（在扁画布里天依偏右）
+  var OFFSET_Y = -20;    // 上移，让翅膀不被裁（画布偏矮）
 
-    // —— 帅气 ——
-    { name: "chitose",    label: "小帅哥·Chitose", group: "boy",   desc: "帅气男生" },
-    { name: "haruto",     label: "少年·Haruto",    group: "boy",   desc: "阳光少年" },
-
-    // —— 动物 ——
-    { name: "hijiki",     label: "黑猫·Hijiki",    group: "animal", desc: "神秘黑猫" },
-    { name: "tororo",     label: "白猫·Tororo",    group: "animal", desc: "治愈白猫" },
-    { name: "wanko",      label: "狗子·Wanko",     group: "animal", desc: "忠诚小狗" },
-
-    // —— 星野 / 动漫角色（来自 evrstr 模型库）——
-    {
-      name: "uiharu",
-      label: "初音·Uiharu",
-      group: "star",
-      desc: "初音未来 经典版",
-      url: "https://cdn.jsdelivr.net/gh/evrstr/live2d-widget-models/live2d_evrstr/uiharu/model.json"
-    },
-
-    // —— 其他 ——
-    { name: "nietzsche",  label: "Nietzsche",      group: "other", desc: "哲学少女" }
-  ];
-
-  var CDN_MODEL = "https://unpkg.com/live2d-widget-model-{name}@1.0.5/assets/{name}.model.json";
-  var CDN_CORE = "https://unpkg.com/live2d-widget@3.1.4/lib/L2Dwidget.min.js";
-
-  /* ---------- 状态 ---------- */
   var hidden = false;
   var tipsTimer = null;
-  var currentModel = null;
-  var l2dWidget = null;
-  var initialized = false;
+  var loaded = false;
 
-  /* ============================================================
-     工具函数
-     ============================================================ */
+  /** 显示气泡 */
   function showTips(text, timeout) {
     timeout = timeout || 3000;
-    var tips = document.getElementById("mascot-tips");
-    if (!tips) return;
-    tips.textContent = text;
-    tips.classList.add("mascot-tips-show");
+    var el = document.getElementById("live2d-tips");
+    if (!el) return;
+    el.textContent = text;
+    el.classList.add("live2d-tips-show");
     if (tipsTimer) clearTimeout(tipsTimer);
     tipsTimer = setTimeout(function () {
-      tips.classList.remove("mascot-tips-show");
+      el.classList.remove("live2d-tips-show");
     }, timeout);
   }
 
-  function getGreeting() {
-    var h = new Date().getHours();
-    if (h < 6) return "夜深了，注意休息哦~";
-    if (h < 11) return "早上好！元气满满的一天！";
-    if (h < 14) return "中午好~记得吃饭呀";
-    if (h < 18) return "下午好，加油工作！";
-    if (h < 22) return "晚上好，夜色真美~";
-    return "夜深了，早点休息吧";
-  }
-
-  /* ============================================================
-     移动端检测
-     ============================================================ */
+  /** 移动端判断 */
   function isMobile() {
     return window.matchMedia("(max-width: 768px)").matches;
   }
 
-  /* ============================================================
-     加载 L2Dwidget 核心库
-     ============================================================ */
-  function loadL2DCore() {
-    return new Promise(function (resolve, reject) {
-      if (window.L2Dwidget) {
-        resolve(window.L2Dwidget);
-        return;
-      }
-      // 已加载过
-      if (document.getElementById("l2dwidget-script")) {
-        var check = setInterval(function () {
-          if (window.L2Dwidget) {
-            clearInterval(check);
-            resolve(window.L2Dwidget);
-          }
-        }, 100);
-        return;
-      }
-
-      var script = document.createElement("script");
-      script.id = "l2dwidget-script";
-      script.src = CDN_CORE;
-      script.onload = function () {
-        if (window.L2Dwidget) {
-          resolve(window.L2Dwidget);
-        } else {
-          reject(new Error("L2Dwidget 加载失败"));
-        }
-      };
-      script.onerror = reject;
-      document.head.appendChild(script);
-    });
+  /** 随机问候语 */
+  function getGreeting() {
+    var h = new Date().getHours();
+    if (h < 6) return "夜深了，要注意身体哦~";
+    if (h < 11) return "早上好！元气满满地出发吧~";
+    if (h < 14) return "中午好，记得吃饭呀";
+    if (h < 18) return "下午好，加油加油！";
+    if (h < 22) return "晚上好~今天辛苦了";
+    return "夜深了，早点休息吧";
   }
 
-  /* ============================================================
-     初始化/切换模型
-     ============================================================ */
-  function loadModel(modelName) {
-    var model = MODELS.find(function (m) { return m.name === modelName; });
-    if (!model) {
-      showTips("未找到该模型", 3000);
+  /** 等待 live2d.js 加载好 */
+  function waitCoreLoaded(cb) {
+    // live2d.js 同步注入，一般在 DOMContentLoaded 前就加载好了
+    if (typeof window.loadlive2d === "function") {
+      cb();
       return;
     }
-
-    // 优先使用模型自带的 url 字段（支持非 npm 来源的模型）
-    var jsonPath = model.url || CDN_MODEL.replace(/\{name\}/g, modelName);
-
-    if (!window.L2Dwidget) {
-      showTips("正在加载核心库...", 3000);
-      loadL2DCore().then(function () {
-        doInitModel(jsonPath, modelName);
-      }).catch(function (err) {
-        console.error(err);
-        showTips("加载失败，请刷新重试", 5000);
-      });
-    } else {
-      if (currentModel === modelName) {
-        showTips("已经是 " + model.label + " 啦", 2500);
-        return;
+    var check = setInterval(function () {
+      if (typeof window.loadlive2d === "function") {
+        clearInterval(check);
+        cb();
       }
-      doSwitchModel(jsonPath, modelName, model.label);
-    }
+    }, 80);
   }
 
-  function doInitModel(jsonPath, modelName) {
-    try {
-      L2Dwidget.init({
-        model: {
-          jsonPath: jsonPath,
-          scale: 0.85
-        },
-        display: {
-          position: "right",
-          width: 220,
-          height: 420,
-          hOffset: 0,
-          vOffset: -20
-        },
-        // 移动端不显示看板娘
-        mobile: {
-          show: false,
-          scale: 0.5
-        },
-        react: {
-          opacityDefault: 0.8,
-          opacityOnHover: 0.2
-        },
-        dialog: {
-          enable: true,
-          script: {
-            "tap body": "哎呀，别碰我！",
-            "tap face": "嗯？你在看什么？",
-            "tap other": "嘿嘿~"
-          }
-        }
-      });
+  /** 真正加载模型 */
+  function loadModel() {
+    waitCoreLoaded(function () {
+      try {
+        // 官方 API：loadlive2d(canvasId, modelJsonPath, scale, offsetX, offsetY)
+        // 它内部会 fetch model.json，然后加载 moc/mtn/textures，
+        // 自动开启 requestAnimationFrame 重绘循环
+        window.loadlive2d(CANVAS_ID, MODEL_JSON, SCALE, OFFSET_X, OFFSET_Y);
 
-      currentModel = modelName;
-      localStorage.setItem("mascot_model", modelName);
-      var model = MODELS.find(function (m) { return m.name === modelName; });
-
-      initialized = true;
-
-      setTimeout(function () {
-        showTips(getGreeting(), 4000);
-        if (model) showTips("我是 " + model.label + "！", 3000);
-      }, 500);
-
-      bindExtraInteraction();
-    } catch (err) {
-      console.error("模型初始化失败:", err);
-      showTips("模型加载失败", 4000);
-    }
-  }
-
-  function doSwitchModel(jsonPath, modelName, label) {
-    try {
-      // 先移除旧的 canvas
-      var oldCanvas = document.querySelector("#live2dcanvas, canvas[id^='live2d']");
-      if (oldCanvas) oldCanvas.remove();
-
-      // 移除旧的 waifu 元素
-      var oldWaifu = document.querySelector(".waifu, .waifu-tips, .waifu-tool");
-      if (oldWaifu) oldWaifu.remove();
-
-      // 重新初始化
-      L2Dwidget.init({
-        model: {
-          jsonPath: jsonPath,
-          scale: 0.85
-        },
-        display: {
-          position: "right",
-          width: 220,
-          height: 420,
-          hOffset: 0,
-          vOffset: -20
-        },
-        mobile: {
-          show: false,
-          scale: 0.5
-        },
-        react: {
-          opacityDefault: 0.8,
-          opacityOnHover: 0.2
-        },
-        dialog: {
-          enable: true,
-          script: {
-            "tap body": "哎呀，别碰我！",
-            "tap face": "嗯？你在看什么？"
-          }
-        }
-      });
-
-      currentModel = modelName;
-      localStorage.setItem("mascot_model", modelName);
-      showTips("切换到 " + label + "！", 3000);
-      bindExtraInteraction();
-    } catch (err) {
-      console.error("切换模型失败:", err);
-      showTips("切换失败，试试其他模型", 4000);
-    }
-  }
-
-  /* ============================================================
-     额外交互（在 L2Dwidget 之上）
-     ============================================================ */
-  function bindExtraInteraction() {
-    // 点击看板娘弹出工作室联系提示
-    setTimeout(function () {
-      var canvas = document.querySelector("canvas[id^='live2d']");
-      if (!canvas) return;
-
-      canvas.addEventListener("click", function () {
-        // 显示点击弹窗文案
-        showTips("一间工作室正式成立，QQ微信暂无法联系，请通过小红书、抖音联系我们", 5000);
-      });
-
-      // 保存 canvas 引用
-      l2dWidget = canvas;
-    }, 500);
-  }
-
-  /* ============================================================
-     模型选择面板
-     ============================================================ */
-  function openModelPanel() {
-    var panel = document.getElementById("mascot-panel");
-    var list = document.getElementById("mascot-model-list");
-    if (!list.innerHTML) {
-      renderModelList(list);
-    }
-    panel.style.display = "block";
-  }
-
-  function closeModelPanel() {
-    document.getElementById("mascot-panel").style.display = "none";
-  }
-
-  function renderModelList(container) {
-    var groups = [
-      { key: "girl",   label: "👧 少女" },
-      { key: "boy",    label: "👦 帅气" },
-      { key: "animal", label: "🐱 动物" },
-      { key: "star",   label: "⭐ 星野" },
-      { key: "other",  label: "✨ 其他" }
-    ];
-
-    groups.forEach(function (group) {
-      var items = MODELS.filter(function (m) { return m.group === group.key; });
-      if (!items.length) return;
-
-      var section = document.createElement("div");
-      section.className = "mascot-model-section";
-
-      var header = document.createElement("div");
-      header.className = "mascot-model-group";
-      header.textContent = group.label;
-      section.appendChild(header);
-
-      var grid = document.createElement("div");
-      grid.className = "mascot-model-grid";
-
-      items.forEach(function (model) {
-        var card = document.createElement("div");
-        card.className = "mascot-model-card";
-        if (currentModel === model.name) card.classList.add("active");
-        card.innerHTML =
-          '<div class="mascot-model-avatar">' + getModelEmoji(model) + '</div>' +
-          '<div class="mascot-model-name">' + model.label + '</div>' +
-          '<div class="mascot-model-desc">' + model.desc + '</div>';
-        card.addEventListener("click", function () {
-          loadModel(model.name);
-          closeModelPanel();
-        });
-        grid.appendChild(card);
-      });
-
-      section.appendChild(grid);
-      container.appendChild(section);
+        // 延迟一点点让模型初始化好再显示气泡
+        setTimeout(function () {
+          loaded = true;
+          showTips("我是洛天依，请多关照~", 3500);
+          setTimeout(function () {
+            showTips(getGreeting(), 3500);
+          }, 2000);
+        }, 1200);
+      } catch (err) {
+        console.error("Live2D 模型加载失败:", err);
+        showTips("模型加载失败，请刷新重试", 4000);
+      }
     });
   }
 
-  function getModelEmoji(model) {
-    if (model.group === "girl") return "👧";
-    if (model.group === "boy") return "👦";
-    if (model.group === "star") {
-      if (model.name === "uiharu") return "🎤";
-      return "⭐";
+  /** 让 canvas 跟随窗口 resize（和目标网站一致：280×250 扁画布） */
+  function fitCanvas() {
+    var canvas = document.getElementById(CANVAS_ID);
+    if (!canvas) return;
+
+    // 和 unsignedzhang.cn 一样：canvas 280×250 比例，固定尺寸不随窗口缩放
+    canvas.width = 280;
+    canvas.height = 250;
+
+    var wrap = canvas.parentElement;
+    if (wrap) {
+      wrap.style.width = "280px";
+      wrap.style.height = "250px";
     }
-    if (model.group === "animal") {
-      if (model.name === "hijiki") return "🐈‍⬛";
-      if (model.name === "tororo") return "🐱";
-      if (model.name === "wanko") return "🐕";
-      return "🐾";
-    }
-    return "✨";
   }
 
-  /* ============================================================
-     打气功能
-     ============================================================ */
-  function cheer() {
-    var pool = [
-      "加油！",
-      "你一定可以的！",
-      "慢慢来~",
-      "你超棒的！",
-      "永远支持你！",
-      "再试一次吧！"
-    ];
-    showTips(pool[Math.floor(Math.random() * pool.length)], 3000);
+  /** 绑定互动事件
+   *  用 cloneNode 彻底清掉 tips 元素上**所有**残留的事件监听器
+   *  （防止调试脚本、astro HMR、或重复调用导致 listener 叠加），
+   *  再在 window 上绑定我们自己的 click 处理（live2d.js 本身就在
+   *  window 上监听 click，用同一层不会和它冲突）。
+   *
+   *  注意：**绝对不能 clone canvas**——live2d.js 内部持有原 canvas 的
+   *  WebGL context 引用，clone 后会导致画面渲染在空白 canvas 上，
+   *  而显示的是新 canvas（全黑）。
+   */
+  function bindExtraInteraction() {
+    // === 清掉 tips 元素上的残留监听器（canvas 绝对不能 clone！） ===
+    var tips = document.getElementById("live2d-tips");
+    if (tips) {
+      var fresh = tips.cloneNode(true);
+      tips.parentNode.replaceChild(fresh, tips);
+      fresh.id = "live2d-tips";
+    }
+
+    // 只绑定一次（astro:page-load 每次 SPA 切换会再次调用这个函数，
+    //  但 _boundOnce 标记保证不会重复注册 window 级别的 click）
+    if (bindExtraInteraction._boundOnce) return;
+    bindExtraInteraction._boundOnce = true;
+
+    function ourClickHandler(e) {
+      if (hidden || !loaded) return;
+
+      var pool = [
+        "嗯~", "嘿嘿~", "好呀~", "唔？", "好开心！",
+        "一起来玩吧！", "一间工作室，加油~",
+        "想吃包子！", "来唱歌吧！"
+      ];
+      // 延迟 300ms：让 live2d.js 的 tapEvent 动作先触发，
+      //  然后再显示气泡，视觉上"动作 → 说话"更自然
+      setTimeout(function () {
+        showTips(pool[Math.floor(Math.random() * pool.length)], 1800);
+      }, 300);
+    }
+
+    // live2d.js 在 window 上监听 click（capture=false），
+    //  我们也在 window 上监听但不 stopPropagation，
+    //  两者互不干扰：它负责跑动作，我们负责飘气泡
+    window.addEventListener("click", ourClickHandler);
   }
 
-  /* ============================================================
-     显示/隐藏
-     ============================================================ */
+  /** 显示/隐藏 */
   function setHidden(v) {
     hidden = v;
-    var container = document.getElementById("mascot-container");
-    var panel = document.getElementById("mascot-panel");
-    var tools = document.querySelector(".mascot-tools");
+    var wrap = document.querySelector(".live2d-scene");
+    if (!wrap) return;
     if (hidden) {
-      container.classList.add("mascot-hidden");
-      panel.style.display = "none";
-      if (tools) tools.style.display = "none";
-      localStorage.setItem("mascot_hidden", "1");
+      wrap.classList.add("live2d-hidden");
+      localStorage.setItem("live2d_hidden", "1");
     } else {
-      container.classList.remove("mascot-hidden");
-      if (tools) tools.style.display = "flex";
-      localStorage.removeItem("mascot_hidden");
-      showTips("我回来啦~", 2500);
+      wrap.classList.remove("live2d-hidden");
+      localStorage.removeItem("live2d_hidden");
+      if (loaded) showTips("天依回来啦~", 2000);
     }
   }
 
-  /* ============================================================
-     工具栏绑定
-     ============================================================ */
-  function bindToolbar() {
-    document.querySelectorAll(".mascot-tool-btn").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        var action = btn.dataset.action;
-        if (action === "model") {
-          openModelPanel();
-        } else if (action === "cheer") {
-          cheer();
-        } else if (action === "close") {
-          setHidden(true);
-        }
-      });
-    });
-
-    document.getElementById("mascot-toggle").addEventListener("click", function () {
-      setHidden(!hidden);
-    });
-
-    document.getElementById("mascot-panel-close").addEventListener("click", closeModelPanel);
-
-    // 点击面板外关闭
-    document.addEventListener("click", function (e) {
-      var panel = document.getElementById("mascot-panel");
-      var btn = document.querySelector("[data-action='model']");
-      if (panel.style.display === "block" &&
-          !panel.contains(e.target) &&
-          !btn.contains(e.target)) {
-        closeModelPanel();
-      }
-    });
-  }
-
-  /* ============================================================
-     其他互动
-     ============================================================ */
-  function bindMisc() {
-    // 页面可见性
-    document.addEventListener("visibilitychange", function () {
-      if (document.visibilityState === "hidden") {
-        showTips("再见~记得回来哦！", 2000);
-      } else {
-        showTips("欢迎回来~", 2000);
-      }
-    });
-
-    // 滚动互动
-    var scrollTimer;
-    window.addEventListener("scroll", function () {
-      clearTimeout(scrollTimer);
-      scrollTimer = setTimeout(function () {
-        if (window.scrollY > 500 && Math.random() > 0.75) {
-          var msgs = ["还在看呢~", "内容精彩吗？", "慢慢看，不着急"];
-          showTips(msgs[Math.floor(Math.random() * msgs.length)], 2000);
-        }
-      }, 3000);
-    });
-  }
-
-  /* ============================================================
-     启动（延迟加载，不阻塞首屏）
-     ============================================================ */
+  /** 启动 */
   function start() {
-    // 移动端不加载看板娘
     if (isMobile()) {
-      document.getElementById("mascot-container").style.display = "none";
-      var tools = document.querySelector(".mascot-tools");
-      if (tools) tools.style.display = "none";
-      var toggle = document.getElementById("mascot-toggle");
-      if (toggle) toggle.style.display = "none";
+      var wrap = document.querySelector(".live2d-scene");
+      if (wrap) wrap.style.display = "none";
       return;
     }
 
-    hidden = localStorage.getItem("mascot_hidden") === "1";
+    hidden = localStorage.getItem("live2d_hidden") === "1";
     if (hidden) {
-      document.getElementById("mascot-container").classList.add("mascot-hidden");
-      var tools = document.querySelector(".mascot-tools");
-      if (tools) tools.style.display = "none";
+      var wrap = document.querySelector(".live2d-scene");
+      if (wrap) wrap.classList.add("live2d-hidden");
     }
 
-    // 绑定 UI 事件（L2Dwidget 加载前也要绑定）
-    bindToolbar();
-    bindMisc();
+    fitCanvas();
+    bindExtraInteraction();
 
-    // 延迟加载：优先使用 requestIdleCallback，回退到 setTimeout
-    var loadAfterDelay = function () {
-      // 如果已经初始化过（如 SPA 切换回来），只重新绑定交互
-      if (initialized && window.L2Dwidget) {
-        // 重新绑定点击事件等（因为 DOM 可能重建了）
-        bindExtraInteraction();
-        return;
-      }
-
-      var savedModel = localStorage.getItem("mascot_model");
-      if (savedModel && MODELS.find(function (m) { return m.name === savedModel; })) {
-        loadModel(savedModel);
-      } else {
-        loadModel("shizuku");
-      }
+    // 延迟加载，优先用 requestIdleCallback
+    var doLoad = function () {
+      loadModel();
     };
-
     if ("requestIdleCallback" in window) {
-      requestIdleCallback(loadAfterDelay, { timeout: 3000 });
+      requestIdleCallback(doLoad, { timeout: 3000 });
     } else {
-      setTimeout(loadAfterDelay, 1500);
+      setTimeout(doLoad, 1500);
     }
+
+    // 绑定显示/隐藏按钮
+    var btn = document.getElementById("live2d-toggle");
+    if (btn) {
+      btn.addEventListener("click", function () {
+        setHidden(!hidden);
+      });
+    }
+
+    // 页面可见性
+    document.addEventListener("visibilitychange", function () {
+      if (document.hidden) return;
+      // 重新显示时，官方 core 的 RAF 会继续（因为 canvas 一直在 DOM 里）
+    });
+
+    // SPA 页面切换
+    document.addEventListener("astro:page-load", function () {
+      // 重新 fit + 重绑事件
+      fitCanvas();
+      bindExtraInteraction();
+    });
+
+    window.addEventListener("resize", fitCanvas);
   }
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", start);
+    document.addEventListener("DOMContentLoaded", start, { once: true });
   } else {
     start();
   }
-
-  /* ============================================================
-     SPA 路由切换后重新初始化
-     Astro View Transitions 页面切换时触发 astro:page-load
-     ============================================================ */
-  document.addEventListener("astro:page-load", function () {
-    // 重新绑定工具栏事件
-    bindToolbar();
-    bindMisc();
-
-    // 延迟加载看板娘
-    if ("requestIdleCallback" in window) {
-      requestIdleCallback(function () {
-        if (initialized && window.L2Dwidget) {
-          // 已初始化，重新绑定交互
-          bindExtraInteraction();
-        } else {
-          // 未初始化，执行完整启动
-          start();
-        }
-      }, { timeout: 2000 });
-    } else {
-      setTimeout(function () {
-        if (initialized && window.L2Dwidget) {
-          bindExtraInteraction();
-        } else {
-          start();
-        }
-      }, 800);
-    }
-  });
-
-  // 兼容旧版本 View Transitions 事件
-  document.addEventListener("astro:after-swap", function () {
-    bindToolbar();
-    bindMisc();
-  });
 })();
 </script>
 
 <style is:global>
-  /* ===== 容器 ===== */
-  .mascot-container {
-    position: fixed;
-    right: 1.25rem;
-    bottom: 1.25rem;
-    z-index: 9999;
-    user-select: none;
-    transition: transform 0.3s ease, opacity 0.3s ease;
-  }
+/* ============================================================
+   场景容器：fixed 左下角（和 unsignedzhang.cn 一致：left:30px bottom:0）
+   ============================================================ */
+.live2d-scene {
+  position: fixed;
+  left: 30px;
+  bottom: 0;
+  z-index: 9999;
+  user-select: none;
+  transition: transform 0.35s ease, opacity 0.35s ease;
+  pointer-events: auto;
+}
 
-  .mascot-container.mascot-hidden {
-    opacity: 0;
-    transform: scale(0.5) translateY(100px);
-    pointer-events: none;
-  }
+.live2d-scene.live2d-hidden {
+  opacity: 0;
+  transform: scale(0.5) translateY(100px);
+  pointer-events: none;
+}
 
-  /* 覆盖 L2Dwidget 默认样式，调整位置 */
-  .waifu {
-    position: absolute !important;
-    left: 0 !important;
-    top: 0 !important;
-    pointer-events: none;
-    z-index: 1;
-  }
+/* canvas：官方 core 内部用 WebGL 渲染，必须设置 width/height（JS 动态控制）
+   去圆角，让天依在右下角无缝吸附 */
+.live2d-canvas {
+  display: block;
+  border-radius: 0;
+  /* 透明背景（premultipliedAlpha:true 已开启） */
+  background: transparent;
+  /* 柔和阴影，让天依不突兀 */
+  filter: drop-shadow(0 4px 16px color-mix(in srgb, var(--accent) 18%, transparent));
+}
 
-  .waifu canvas {
-    pointer-events: auto;
-  }
+/* ===== 气泡 ===== */
+.live2d-tips {
+  position: absolute;
+  top: -36px;
+  left: 50%;
+  transform: translateX(-50%) translateY(6px);
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 5px 12px;
+  font-size: 12px;
+  color: var(--foreground);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--foreground) 10%, transparent);
+  z-index: 2;
+}
 
-  .waifu-tips {
-    display: none !important;
-  }
+.live2d-tips::after {
+  content: "";
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 8px; height: 8px;
+  background: var(--background);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
 
-  .waifu-tool {
-    display: none !important;
-  }
+.live2d-tips.live2d-tips-show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
 
-  /* ===== 提示气泡 ===== */
-  .mascot-tips {
-    position: fixed;
-    z-index: 10000;
-    background: var(--background);
-    border: 1px solid var(--border);
-    border-radius: 0.75rem;
-    padding: 0.5rem 0.875rem;
-    font-size: 0.8125rem;
-    line-height: 1.4;
-    color: var(--foreground);
-    box-shadow: 0 4px 20px color-mix(in srgb, var(--foreground) 10%, transparent);
-    white-space: normal;
-    text-align: center;
-    max-width: 200px;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s ease, transform 0.3s ease;
-    right: calc(1.25rem + 220px + 0.75rem);
-    bottom: calc(1.25rem + 340px);
-    transform: translateX(0) translateY(10px);
-  }
+/* ===== 显示/隐藏按钮 ===== */
+.live2d-toggle {
+  position: absolute;
+  top: -14px;
+  right: -14px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--background);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--foreground) 12%, transparent);
+  transition: transform 0.2s ease;
+  z-index: 3;
+}
+.live2d-toggle:hover { transform: scale(1.12); }
 
-  .mascot-tips::after {
-    content: "";
-    position: absolute;
-    top: 100%;
-    right: 1rem;
-    transform: translateX(50%) rotate(135deg);
-    width: 10px;
-    height: 10px;
-    background: var(--background);
-    border: none;
-    border-left: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
-  }
+/* ===== 深色模式微调 ===== */
+html[data-theme="dark"] .live2d-canvas {
+  filter: drop-shadow(0 4px 16px color-mix(in srgb, var(--accent) 12%, transparent));
+}
 
-  .mascot-tips.mascot-tips-show {
-    opacity: 1;
-    transform: translateX(0) translateY(0);
-  }
-
-  /* ===== 模型选择面板 ===== */
-  .mascot-panel {
-    position: fixed;
-    right: calc(1.25rem + 220px + 1.5rem);
-    bottom: calc(1.25rem + 60px);
-    z-index: 10001;
-    width: 340px;
-    max-height: 480px;
-    background: var(--background);
-    border: 1px solid var(--border);
-    border-radius: 1rem;
-    box-shadow: 0 12px 40px color-mix(in srgb, var(--foreground) 15%, transparent);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .mascot-panel-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.875rem 1rem;
-    border-bottom: 1px solid var(--border);
-    font-weight: 600;
-    font-size: 0.9375rem;
-    color: var(--foreground);
-  }
-
-  .mascot-panel-close {
-    width: 1.5rem;
-    height: 1.5rem;
-    border: none;
-    background: transparent;
-    color: var(--foreground);
-    font-size: 1.25rem;
-    cursor: pointer;
-    border-radius: 0.375rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.2s;
-  }
-
-  .mascot-panel-close:hover {
-    background: var(--muted);
-  }
-
-  .mascot-model-list {
-    overflow-y: auto;
-    padding: 0.75rem;
-    flex: 1;
-    scrollbar-width: thin;
-    scrollbar-color: var(--muted-foreground) transparent;
-  }
-
-  .mascot-model-list::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  .mascot-model-list::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .mascot-model-list::-webkit-scrollbar-thumb {
-    background: var(--muted-foreground);
-    border-radius: 3px;
-  }
-
-  .mascot-model-section {
-    margin-bottom: 0.75rem;
-  }
-
-  .mascot-model-section:last-child {
-    margin-bottom: 0;
-  }
-
-  .mascot-model-group {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--muted-foreground);
-    margin-bottom: 0.5rem;
-    padding-left: 0.25rem;
-  }
-
-  .mascot-model-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.375rem;
-  }
-
-  .mascot-model-card {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem;
-    border: 1px solid var(--border);
-    border-radius: 0.5rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    background: var(--background);
-  }
-
-  .mascot-model-card:hover {
-    border-color: var(--accent);
-    background: color-mix(in srgb, var(--accent) 8%, var(--background));
-    transform: translateY(-1px);
-  }
-
-  .mascot-model-card.active {
-    border-color: var(--accent);
-    background: color-mix(in srgb, var(--accent) 15%, var(--background));
-  }
-
-  .mascot-model-avatar {
-    width: 2rem;
-    height: 2rem;
-    border-radius: 50%;
-    background: color-mix(in srgb, var(--accent) 15%, var(--muted));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1rem;
-    flex-shrink: 0;
-  }
-
-  .mascot-model-name {
-    font-size: 0.8125rem;
-    font-weight: 500;
-    color: var(--foreground);
-    line-height: 1.2;
-  }
-
-  .mascot-model-desc {
-    font-size: 0.6875rem;
-    color: var(--muted-foreground);
-    margin-top: 0.125rem;
-  }
-
-  /* ===== 工具栏 ===== */
-  .mascot-tools {
-    position: fixed;
-    right: 1.25rem;
-    top: 1.25rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.375rem;
-    z-index: 10000;
-    opacity: 0.4;
-    pointer-events: auto;
-    transition: opacity 0.3s ease;
-  }
-
-  .mascot-tools:hover {
-    opacity: 1;
-  }
-
-  .mascot-tool-btn {
-    width: 2rem;
-    height: 2rem;
-    border: 1px solid var(--border);
-    border-radius: 0.5rem;
-    background: var(--background);
-    color: var(--foreground);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    box-shadow: 0 2px 8px color-mix(in srgb, var(--foreground) 8%, transparent);
-    transition: all 0.2s ease;
-    padding: 0;
-  }
-
-  .mascot-tool-btn:hover {
-    background: var(--accent);
-    color: var(--accent-foreground);
-    border-color: var(--accent);
-    transform: scale(1.1);
-  }
-
-  /* ===== 展开/收起 ===== */
-  .mascot-toggle {
-    position: fixed;
-    right: 1.25rem;
-    top: calc(1.25rem + 150px + 0.5rem);
-    width: 1.75rem;
-    height: 1.75rem;
-    border: 1px solid var(--border);
-    border-radius: 50%;
-    background: var(--background);
-    color: var(--foreground);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    box-shadow: 0 2px 8px color-mix(in srgb, var(--foreground) 8%, transparent);
-    transition: all 0.2s ease;
-    padding: 0;
-    z-index: 10000;
-  }
-
-  .mascot-toggle:hover {
-    background: var(--accent);
-    color: var(--accent-foreground);
-    transform: scale(1.1);
-  }
-
-  /* ===== 响应式：移动端完全隐藏 ===== */
-  @media (max-width: 768px) {
-    .mascot-container,
-    .mascot-tools,
-    .mascot-toggle {
-      display: none !important;
-    }
-  }
-
-  /* 桌面端响应式微调 */
-  @media (min-width: 769px) and (max-width: 1024px) {
-    .mascot-panel {
-      width: 280px;
-      right: calc(0.625rem + 180px + 1rem);
-    }
-  }
+/* ===== 响应式 ===== */
+@media (max-width: 768px) {
+  .live2d-scene { display: none !important; }
+}
 </style>

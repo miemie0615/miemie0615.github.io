@@ -6,6 +6,7 @@ import { resolveDefaultOgImagePath } from "@/utils/resolveDefaultOgImagePath";
 import { getAssetPath } from "@/utils/withBase";
 import config from "@/config";
 import Live2D from "@/components/Live2D.astro";
+import Hamster from "@/components/Hamster.astro";
 import "@/styles/global.css";
 
 type Props = {
@@ -433,10 +434,372 @@ const rssHref = getRelativeLocaleUrl(
   <body
     class="bg-background font-app text-foreground selection:bg-accent/75 selection:text-accent-foreground flex min-h-svh flex-col"
   >
+    <!-- 樱花飘落背景层：固定铺满视口，z-index:-1 位于正文内容之下，不遮挡文字 -->
+    <div class="sakura-bg" id="sakuraBg" aria-hidden="true"></div>
+
     <slot />
     <Live2D />
+
+    <!--
+      点击飘字特效容器
+      ------------------------------------------------------------
+      每次点击时由 JS 动态注入"一间工作室"的下一个汉字。
+      pointer-events: none 保证不拦截任何点击事件穿透到页面。
+    -->
+    <div class="char-trail" id="charTrail" aria-hidden="true"></div>
+
     <script>
       import "@/scripts/theme";
+    </script>
+
+    <!--
+      点击飘字特效：点击一次出一个"一间工作室"汉字
+      ------------------------------------------------------------
+      动画节奏参考 CSDN setInterval 15ms/帧 原版实现：
+      - 总时长 0.94s 线性匀速
+      - 透明度从 1 线性递减到 0
+      - 竖直向上飘 55~70px，水平 ±12px 随机摇摆
+      - scale 从 1 微增到 1.3（原版每帧 +0.002 的递增）
+      实现要点：
+      1. 事件：document 上 click + touchend，覆盖桌面与触屏
+      2. 循环：一→间→工→作→室 按顺序循环
+      3. 防冲突：<a> <button> 等交互元素不触发
+      4. 自动回收：0.94s 动画结束后 +160ms 余量清理 DOM
+      5. SPA 兼容：astro:page-load 时清空残留
+    -->
+    <script is:inline data-click-pop>
+      (function () {
+        "use strict";
+
+        // ===== 配置（数值参考 CSDN setInterval 15ms/帧 原版） =====
+        // 每次点击飘出一个完整的"❤X❤"爱心包裹汉字，依次循环
+        // ❤后加 \uFE0E（VS15 变体选择器）强制渲染为单色文本心形，
+        // 使其能被 CSS color: var(--accent) 染色，不再是固定红色 emoji
+        var HEART = "\u2764\uFE0E"; // ❤︎ 单色心形（可被 CSS 染色）
+        var TEXT = [HEART + "一" + HEART, HEART + "间" + HEART, HEART + "工" + HEART, HEART + "作" + HEART, HEART + "室" + HEART];
+        var MAX_PARTICLES = 30;     // 同屏最多粒子数
+        var FLY_MIN = 55;           // 上飘距离下限(px)，对应原版 ~60px
+        var FLY_MAX = 70;           // 上飘距离上限(px)
+        var SWAY = 12;              // 水平随机摇摆范围(px)，原版无水平位移，加一点更灵动
+
+        // ===== 状态 =====
+        var container = null;
+        var pendingCharIndex = 0;
+
+        /** 随机数 */
+        function rand(min, max) {
+          return Math.random() * (max - min) + min;
+        }
+
+        /**
+         * 随机颜色：与参考代码 randomColor() 完全一致
+         * 每次点击生成随机 RGB，让每个飘字颜色都不同
+         */
+        function randomColor() {
+          return "rgb(" +
+            (~~(Math.random() * 255)) + "," +
+            (~~(Math.random() * 255)) + "," +
+            (~~(Math.random() * 255)) + ")";
+        }
+
+        /**
+         * 从给定坐标飘出一个汉字
+         */
+        function emitChar(x, y) {
+          if (!container) return;
+
+          var char = TEXT[pendingCharIndex];
+          pendingCharIndex = (pendingCharIndex + 1) % TEXT.length;
+
+          var el = document.createElement("span");
+          el.className = "char-trail__item";
+          el.textContent = char;
+
+          // 随机颜色：覆盖 CSS 默认的 var(--accent)
+          el.style.color = randomColor();
+
+          // 起点：点击位置，带轻微抖动（±4px）让落点不那么机械
+          el.style.left = (x + rand(-4, 4)) + "px";
+          el.style.top = (y + rand(-2, 2)) + "px";
+
+          // 终点位移：竖直向上 55~70px，水平 ±SWAY 摇摆
+          var dx = rand(-SWAY, SWAY);
+          var dy = -rand(FLY_MIN, FLY_MAX); // 向上为负
+
+          el.style.setProperty("--char-dx", dx + "px");
+          el.style.setProperty("--char-dy", dy + "px");
+
+          // 粒子过多时丢弃最早的（原版 setInterval 无此保护，这里做一下避免堆积）
+          while (container.children.length >= MAX_PARTICLES) {
+            container.removeChild(container.firstChild);
+          }
+
+          container.appendChild(el);
+
+          // CSS 动画 0.94s 结束后清理（加 160ms 余量防止边界丢帧）
+          setTimeout(function () {
+            if (el.parentNode === container) {
+              container.removeChild(el);
+            }
+          }, 1100);
+        }
+
+        /**
+         * 判断点击目标是否属于交互元素
+         * 避免点击链接/按钮/输入框时也飘字，干扰正常操作
+         */
+        function isInteractive(target) {
+          if (!target || !(target instanceof Element)) return false;
+          var tag = target.tagName.toLowerCase();
+          if (tag === "a" || tag === "button" || tag === "input" ||
+              tag === "textarea" || tag === "select" || tag === "label" ||
+              tag === "summary") return true;
+          if (target.closest("a, button, [role=button], input, textarea, select")) {
+            return true;
+          }
+          // 排除特效容器自身（虽然它 pointer-events: none 不会收到事件，保险起见）
+          if (target.closest(".char-trail")) return true;
+          return false;
+        }
+
+        /**
+         * 点击事件统一入口
+         */
+        function onClick(e) {
+          // 交互元素跳过
+          if (isInteractive(e.target)) return;
+
+          // 从事件取坐标（触屏优先 changedTouches）
+          var cx = 0, cy = 0;
+          if (e.changedTouches && e.changedTouches[0]) {
+            cx = e.changedTouches[0].clientX;
+            cy = e.changedTouches[0].clientY;
+          } else {
+            cx = e.clientX;
+            cy = e.clientY;
+          }
+          emitChar(cx, cy);
+        }
+
+        /** 启动 */
+        function start() {
+          container = document.getElementById("charTrail");
+          if (!container) return;
+          // 用 click + touchend 覆盖桌面和触屏
+          document.addEventListener("click", onClick, false);
+          document.addEventListener("touchend", onClick, { passive: true });
+        }
+
+        /** 清理 */
+        function cleanup() {
+          document.removeEventListener("click", onClick);
+          document.removeEventListener("touchend", onClick);
+        }
+
+        // DOM 就绪后初始化
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", start, { once: true });
+        } else {
+          start();
+        }
+
+        // SPA 切换时清空残留粒子
+        document.addEventListener("astro:page-load", function () {
+          if (container) container.innerHTML = "";
+        });
+
+        // 页面隐藏时清空，避免回来一堆飘字
+        document.addEventListener("visibilitychange", function () {
+          if (document.hidden && container) container.innerHTML = "";
+        });
+
+        window.addEventListener("beforeunload", cleanup);
+      })();
+    </script>
+
+    <!--
+      樱花飘落背景层：自动持续生成粉色花瓣
+      ------------------------------------------------------------
+      实现要点：
+      1. SVG 花瓣形状：五瓣 + 粉白径向渐变，水墨水彩感
+      2. 定时生成：每 350~650ms 一朵，位置/大小/速度全随机
+      3. CSS 驱动动画：JS 只负责注入随机参数，下落/摇摆/旋转全在 CSS keyframes
+      4. 同屏上限：DESKTOP 28 / 触屏 14，防止低端机卡顿
+      5. 生命周期：visibilitychange 暂停恢复 / page-load 清空重建 / SPA 切换兼容
+      6. 尊重 prefers-reduced-motion：仅首屏同时放固定少量花瓣，不循环生成
+    -->
+    <script is:inline data-sakura>
+      (function () {
+        "use strict";
+
+        // ===== 配置 =====
+        var PETAL_SVG =
+          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">' +
+          '<defs>' +
+          '<radialGradient id="sg" cx="50%" cy="35%" r="65%">' +
+          '<stop offset="0%"  stop-color="#ffffff" stop-opacity="0.95"/>' +
+          '<stop offset="55%" stop-color="#ffc1d1" stop-opacity="0.85"/>' +
+          '<stop offset="100%" stop-color="#e88aa6" stop-opacity="0.7"/>' +
+          '</radialGradient>' +
+          '</defs>' +
+          '<g fill="url(#sg)" stroke="#d87a95" stroke-width="0.5" stroke-opacity="0.35">' +
+          '<!-- 5 片花瓣（椭圆 + 尖） -->' +
+          '<ellipse cx="20" cy="6"  rx="5" ry="9" transform="rotate(  0 20 20)"/>' +
+          '<ellipse cx="20" cy="6"  rx="5" ry="9" transform="rotate( 72 20 20)"/>' +
+          '<ellipse cx="20" cy="6"  rx="5" ry="9" transform="rotate(144 20 20)"/>' +
+          '<ellipse cx="20" cy="6"  rx="5" ry="9" transform="rotate(216 20 20)"/>' +
+          '<ellipse cx="20" cy="6"  rx="5" ry="9" transform="rotate(288 20 20)"/>' +
+          '<circle cx="20" cy="20" r="3.2" fill="#ff9fb4" fill-opacity="0.9" stroke="#d87a95" stroke-width="0.4"/>' +
+          '</g>' +
+          '</svg>';
+
+        var MAX_PETALS_DESKTOP = 28;
+        var MAX_PETALS_MOBILE = 14;
+        var SPAWN_MIN = 350;   // 最短生成间隔 ms
+        var SPAWN_MAX = 650;   // 最长生成间隔 ms
+        var SIZE_MIN = 10;     // 花瓣大小下限 px
+        var SIZE_MAX = 22;     // 花瓣大小上限 px
+        var DUR_MIN = 7;       // 下落时长下限 s
+        var DUR_MAX = 12;      // 下落时长上限 s
+        var SWAY_MIN = 15;     // 水平摇摆下限 px
+        var SWAY_MAX = 55;     // 水平摇摆上限 px
+
+        // ===== 状态 =====
+        var container = null;
+        var spawnTimer = null;
+        var maxPetals = MAX_PETALS_DESKTOP;
+
+        /** 随机数 */
+        function rand(min, max) {
+          return Math.random() * (max - min) + min;
+        }
+
+        /** 当前设备判断 */
+        function isMobile() {
+          return (window.innerWidth < 640) ||
+            (window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
+        }
+
+        /** 是否尊重 reduced-motion */
+        function prefersReducedMotion() {
+          return window.matchMedia &&
+            window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        }
+
+        /** 生成一朵花瓣 */
+        function spawnPetal() {
+          if (!container) return;
+
+          // 数量上限保护
+          if (container.children.length >= maxPetals) return;
+
+          var el = document.createElement("div");
+          el.className = "sakura-petal";
+          el.innerHTML = PETAL_SVG;
+
+          var size = rand(SIZE_MIN, SIZE_MAX);
+          var leftPct = rand(0, 100);            // 水平起点百分比
+          var sway = rand(SWAY_MIN, SWAY_MAX) * (Math.random() < 0.5 ? -1 : 1);
+          var rot = rand(-180, 180);
+          var dur = rand(DUR_MIN, DUR_MAX);
+          var delay = rand(0, 2);                // 起始延迟，模拟不同时刻落下
+          var fallDist = window.innerHeight + 80;
+
+          el.style.setProperty("--sakura-size", size + "px");
+          el.style.setProperty("--sakura-left", leftPct + "%");
+          el.style.setProperty("--sakura-x", sway + "px");
+          el.style.setProperty("--sakura-r", rot + "deg");
+          el.style.setProperty("--sakura-d", fallDist + "px");
+          el.style.setProperty("--sakura-dur", dur + "s");
+          el.style.setProperty("--sakura-delay", delay + "s");
+
+          container.appendChild(el);
+
+          // 动画结束后清理（加 1s 余量）
+          setTimeout(function () {
+            if (el.parentNode === container) {
+              container.removeChild(el);
+            }
+          }, (dur + delay) * 1000 + 1000);
+        }
+
+        /** 循环生成 */
+        function scheduleSpawn() {
+          if (!container) return;
+          spawnPetal();
+          var next = rand(SPAWN_MIN, SPAWN_MAX);
+          spawnTimer = setTimeout(scheduleSpawn, next);
+        }
+
+        /** 启动 */
+        function start() {
+          container = document.getElementById("sakuraBg");
+          if (!container) return;
+
+          // 根据设备能力调整
+          maxPetals = isMobile() ? MAX_PETALS_MOBILE : MAX_PETALS_DESKTOP;
+
+          if (prefersReducedMotion()) {
+            // reduced-motion: 只放 8 朵静止花瓣，不循环
+            for (var i = 0; i < 8; i++) {
+              spawnPetal();
+            }
+            return;
+          }
+
+          // 启动循环
+          scheduleSpawn();
+        }
+
+        /** 停止 */
+        function stop() {
+          if (spawnTimer) {
+            clearTimeout(spawnTimer);
+            spawnTimer = null;
+          }
+        }
+
+        /** 清空容器 */
+        function clearAll() {
+          if (container) container.innerHTML = "";
+        }
+
+        // DOM 就绪后启动
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", start, { once: true });
+        } else {
+          start();
+        }
+
+        // 页面隐藏 → 暂停生成（已在飞的继续），恢复 → 继续
+        document.addEventListener("visibilitychange", function () {
+          if (document.hidden) {
+            stop();
+          } else {
+            scheduleSpawn();
+          }
+        });
+
+        // SPA 页面切换：清空残留，重新启动
+        document.addEventListener("astro:page-load", function () {
+          clearAll();
+          stop();
+          start();
+        });
+
+        // 窗口尺寸变化：重新判断是否是移动端
+        window.addEventListener("resize", function () {
+          var newMax = isMobile() ? MAX_PETALS_MOBILE : MAX_PETALS_DESKTOP;
+          if (newMax !== maxPetals) {
+            maxPetals = newMax;
+          }
+        });
+
+        window.addEventListener("beforeunload", function () {
+          stop();
+          clearAll();
+        });
+      })();
     </script>
   </body>
 </html>
