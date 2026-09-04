@@ -1,0 +1,252 @@
+/* ============================================================
+   Transitions.dev 精选动效集（仅引入项目实际使用的动效）
+   ------------------------------------------------------------
+   源仓库：github.com/Jakubantalik/transitions.dev
+   每个动效都包含：语义化 CSS 变量 + 自包含 CSS 规则 +
+   prefers-reduced-motion 降级。命名统一 t-* 前缀避免冲突。
+   ============================================================ */
+
+/* ── Motion Tokens（共用标尺）───────────────────────────── */
+:root {
+  /* 时长 */
+  --duration-quick: 150ms;      /* 快速关闭 */
+  --duration-fast: 250ms;       /* 一般打开/切换 */
+  --duration-medium: 350ms;     /* 中等时长 */
+
+  /* 缓动曲线 */
+  --ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);   /* 通用开/关、位置变化 */
+  --ease-in-out: ease-in-out;                           /* 图标切换、数字翻牌 */
+  --ease-bounce: cubic-bezier(0.34, 1.36, 0.64, 1);    /* 带弹性的弹出 */
+  --ease-bounce-strong: cubic-bezier(0.34, 3.85, 0.64, 1);  /* 强力回弹 */
+
+  /* ── 1. Menu dropdown（作品集/配色下拉菜单） ── */
+  --dropdown-open-dur: 250ms;
+  --dropdown-close-dur: 150ms;
+  --dropdown-pre-scale: 0.97;
+  --dropdown-closing-scale: 0.99;
+  --dropdown-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* ── 2. Icon swap（主题切换印章↔月亮） ── */
+  --icon-swap-dur: 250ms;
+  --icon-swap-blur: 2px;
+  --icon-swap-start-scale: 0.25;
+  --icon-swap-ease: ease-in-out;
+
+  /* ── 3. Number pop-in（不蒜子统计数字翻牌） ── */
+  --digit-dur: 500ms;
+  --digit-distance: 8px;
+  --digit-stagger: 70ms;
+  --digit-blur: 2px;
+  --digit-ease: cubic-bezier(0.34, 1.45, 0.64, 1);
+  --digit-dir-x: 0;
+  --digit-dir-y: 1;
+
+  /* ── 4. Card resize（卡片尺寸平滑过渡） ── */
+  --resize-dur: 300ms;
+  --resize-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* ── 5. Panel reveal（移动端菜单面板展开） ── */
+  --panel-open-dur: 400ms;
+  --panel-close-dur: 350ms;
+  --panel-translate-y: 100px;
+  --panel-blur: 2px;
+  --panel-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* ── 6. Avatar group hover（社交图标悬浮联动） ── */
+  --avatar-lift: -4px;
+  --avatar-dur: 320ms;
+  --avatar-scale: 1.05;
+  --avatar-falloff: 0.45;
+  --avatar-ease-in: cubic-bezier(0.22, 1, 0.36, 1);
+  --avatar-ease-out: cubic-bezier(0.34, 3.85, 0.64, 1);
+}
+
+
+/* ═════════════════════════════════════════════════════════════
+   1. MENU DROPDOWN — 下拉菜单（作品集 / 配色选择器）
+   ─────────────────────────────────────────────────────────────
+   用法：
+     <div class="t-dropdown" data-origin="top-center">…</div>
+   状态：
+     打开：加 .is-open
+     关闭：先 .is-closing，--dropdown-close-dur 后移除
+   visiblity:hidden 在初始状态防止移动端占位，is-open 时切 visible
+   ═════════════════════════════════════════════════════════════ */
+.t-dropdown {
+  transform-origin: top left;
+  transform: scale(var(--dropdown-pre-scale));
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    transform var(--dropdown-open-dur) var(--dropdown-ease),
+    opacity   var(--dropdown-open-dur) var(--dropdown-ease);
+  will-change: transform, opacity;
+}
+.t-dropdown[data-origin="top-right"]     { transform-origin: top right; }
+.t-dropdown[data-origin="top-center"]    { transform-origin: top center; }
+.t-dropdown[data-origin="bottom-left"]   { transform-origin: bottom left; }
+.t-dropdown[data-origin="bottom-center"] { transform-origin: bottom center; }
+.t-dropdown[data-origin="bottom-right"]  { transform-origin: bottom right; }
+.t-dropdown.is-open {
+  visibility: visible;
+  transform: scale(1);
+  opacity: 1;
+  pointer-events: auto;
+}
+.t-dropdown.is-closing {
+  transform: scale(var(--dropdown-closing-scale));
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform var(--dropdown-close-dur) var(--dropdown-ease),
+    opacity   var(--dropdown-close-dur) var(--dropdown-ease);
+}
+
+
+/* ═════════════════════════════════════════════════════════════
+   2. ICON SWAP — 图标交叉淡入淡出（主题切换印章↔月亮）
+   ─────────────────────────────────────────────────────────────
+   用法：
+     <div class="t-icon-swap" data-state="a">
+       <span class="t-icon" data-icon="a">…</span>
+       <span class="t-icon" data-icon="b">…</span>
+     </div>
+   状态：data-state="a" / "b" 切换显示
+   ═════════════════════════════════════════════════════════════ */
+.t-icon-swap {
+  position: relative;
+  display: inline-grid;
+}
+.t-icon-swap .t-icon {
+  grid-area: 1 / 1;
+  transition:
+    opacity   var(--icon-swap-dur) var(--icon-swap-ease),
+    filter    var(--icon-swap-dur) var(--icon-swap-ease),
+    transform var(--icon-swap-dur) var(--icon-swap-ease);
+  will-change: opacity, filter, transform;
+}
+.t-icon-swap[data-state="a"] .t-icon[data-icon="a"],
+.t-icon-swap[data-state="b"] .t-icon[data-icon="b"] {
+  opacity: 1;
+  filter: blur(0);
+  transform: scale(1);
+}
+.t-icon-swap[data-state="a"] .t-icon[data-icon="b"],
+.t-icon-swap[data-state="b"] .t-icon[data-icon="a"] {
+  opacity: 0;
+  filter: blur(var(--icon-swap-blur));
+  transform: scale(var(--icon-swap-start-scale));
+}
+
+
+/* ═════════════════════════════════════════════════════════════
+   3. NUMBER POP-IN — 数字翻牌（不蒜子 UV/PV 统计）
+   ─────────────────────────────────────────────────────────────
+   用法：
+     <span class="t-digit-group is-animating">
+       <span class="t-digit">1</span>
+       <span class="t-digit">2</span>
+       <span class="t-digit" data-stagger="1">.</span>
+       <span class="t-digit" data-stagger="2">3</span>
+     </span>
+   重放：移除 .is-animating → 更新 digits → 强制 reflow → 重新加 .is-animating
+   ═════════════════════════════════════════════════════════════ */
+@keyframes t-digit-pop-in {
+  0%   {
+    transform: translate(
+      calc(var(--digit-distance) * var(--digit-dir-x)),
+      calc(var(--digit-distance) * var(--digit-dir-y))
+    );
+    opacity: 0;
+    filter: blur(var(--digit-blur));
+  }
+  100% { transform: translate(0, 0); opacity: 1; filter: blur(0); }
+}
+.t-digit-group {
+  display: inline-flex;
+  align-items: baseline;
+}
+.t-digit {
+  display: inline-block;
+  will-change: transform, opacity, filter;
+}
+.t-digit-group.is-animating .t-digit {
+  animation: t-digit-pop-in var(--digit-dur) var(--digit-ease) both;
+}
+.t-digit-group.is-animating .t-digit[data-stagger="1"] {
+  animation-delay: var(--digit-stagger);
+}
+.t-digit-group.is-animating .t-digit[data-stagger="2"] {
+  animation-delay: calc(var(--digit-stagger) * 2);
+}
+
+
+/* ═════════════════════════════════════════════════════════════
+   4. CARD RESIZE — 卡片尺寸平滑过渡
+   ─────────────────────────────────────────────────────────────
+   用法：给元素加 .t-resize，切换 width/height 时自动 tween
+   ═════════════════════════════════════════════════════════════ */
+.t-resize {
+  transition:
+    width  var(--resize-dur) var(--resize-ease),
+    height var(--resize-dur) var(--resize-ease);
+  will-change: width, height;
+}
+
+
+/* ═════════════════════════════════════════════════════════════
+   5. PANEL REVEAL — 面板展开/收起（移动端菜单）
+   ─────────────────────────────────────────────────────────────
+   用法：
+     <div class="t-panel-slide" data-open="false">…</div>
+   状态：data-open="true" / "false"
+   ═════════════════════════════════════════════════════════════ */
+.t-panel-slide {
+  transform: translateY(var(--panel-translate-y));
+  opacity: 0;
+  filter: blur(var(--panel-blur));
+  pointer-events: none;
+  transition:
+    transform var(--panel-close-dur) var(--panel-ease),
+    opacity   var(--panel-close-dur) var(--panel-ease),
+    filter    var(--panel-close-dur) var(--panel-ease);
+  will-change: transform, opacity, filter;
+}
+.t-panel-slide[data-open="true"] {
+  transform: translateY(0);
+  opacity: 1;
+  filter: blur(0);
+  pointer-events: auto;
+  transition:
+    transform var(--panel-open-dur) var(--panel-ease),
+    opacity   var(--panel-open-dur) var(--panel-ease),
+    filter    var(--panel-open-dur) var(--panel-ease);
+}
+
+
+/* ═════════════════════════════════════════════════════════════
+   6. AVATAR GROUP HOVER — 社交图标悬浮联动
+   ─────────────────────────────────────────────────────────────
+   CSS 只管 transform + transition，位置偏移由 JS 写入内联变量。
+   JS 绑定见 Socials 组件或 Layout.astro。
+   ═════════════════════════════════════════════════════════════ */
+.t-avatar {
+  transform-origin: center;
+  transform:
+    translateY(var(--shift, 0px))
+    scale(var(--scale-active, 1));
+  transition: transform var(--avatar-dur) var(--avatar-ease-in);
+  will-change: transform;
+}
+
+
+/* ── 全局降级：减少动画偏好时禁用所有 transitions-dev 动效 ── */
+@media (prefers-reduced-motion: reduce) {
+  .t-dropdown { transition: none !important; }
+  .t-icon-swap .t-icon { transition: none !important; }
+  .t-digit-group .t-digit { animation: none !important; }
+  .t-resize { transition: none !important; }
+  .t-panel-slide { transition: none !important; }
+  .t-avatar { transition: none !important; transform: none !important; }
+}

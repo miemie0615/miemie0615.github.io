@@ -11,12 +11,11 @@ function getPreferredTheme(): string {
     : LIGHT;
 }
 
-// Reuse the value already set by the inline FOUC-prevention script if available.
+// 复用 FOUC 预防脚本已写入的值
 let themeValue: string =
   (window as unknown as { __theme?: { value: string } }).__theme?.value ??
   getPreferredTheme();
 
-// 当前国风配色（data-palette）；空字符串表示使用默认主题配色。
 let paletteValue: string =
   (window as unknown as { __theme?: { palette: string } }).__theme?.palette ??
   localStorage.getItem(PALETTE_KEY) ??
@@ -27,7 +26,6 @@ function persist(): void {
   reflect();
 }
 
-// 持久化并应用国风配色（与明暗互相独立）。
 function persistPalette(): void {
   if (paletteValue) {
     localStorage.setItem(PALETTE_KEY, paletteValue);
@@ -42,7 +40,6 @@ function reflect(): void {
   root?.setAttribute("data-theme", themeValue);
   root?.classList.toggle("dark", themeValue === DARK);
 
-  // 应用/清除国风配色标记：有值则设置 data-palette，无值则移除以回到默认主题。
   if (paletteValue) {
     root?.setAttribute("data-palette", paletteValue);
   } else {
@@ -51,8 +48,12 @@ function reflect(): void {
 
   document.querySelector("#theme-btn")?.setAttribute("aria-label", themeValue);
 
-  // Fill <meta name="theme-color"> with the computed background colour so
-  // Android's browser chrome matches the page background.
+  // Icon swap：浅色(a)显示印章，深色(b)显示月亮
+  const swap = document.querySelector<HTMLElement>("#theme-icon-swap");
+  if (swap) {
+    swap.dataset.state = themeValue === DARK ? "b" : "a";
+  }
+
   const bg = window.getComputedStyle(document.body).backgroundColor;
   document
     .querySelector("meta[name='theme-color']")
@@ -62,7 +63,7 @@ function reflect(): void {
 function setup(): void {
   reflect();
 
-  // 明暗切换按钮（保留原有二态切换）。
+  // 明暗切换按钮
   document.querySelector("#theme-btn")?.addEventListener("click", () => {
     themeValue = themeValue === LIGHT ? DARK : LIGHT;
     persist();
@@ -71,36 +72,49 @@ function setup(): void {
   setupPalette();
 }
 
-// 国风配色选择器：点开菜单、选择配色、点外部关闭。
-// 说明：菜单内元素随 View Transitions 重建，故按钮/选项的监听在 setup 时重新绑定；
-// 而 document 级别的“点外部关闭 / Esc 关闭”只在模块加载时绑定一次，避免导航后重复累积。
+// 配色菜单关闭计时器（用于 is-closing 动画后彻底隐藏）
+let _paletteCloseTimer: ReturnType<typeof setTimeout> | null = null;
+
+// 国风配色选择器：使用 t-dropdown 的 is-open/is-closing 做过渡
 function setupPalette(): void {
   const paletteBtn =
     document.querySelector<HTMLButtonElement>("#palette-btn");
   const paletteMenu = document.querySelector<HTMLElement>("#palette-menu");
   if (!paletteBtn || !paletteMenu) return;
 
-  // 点击调色盘按钮切换菜单显隐。
+  const closeMs = 160; // --dropdown-close-dur + 余量
+
   paletteBtn.addEventListener("click", event => {
     event.stopPropagation();
-    const isHidden = paletteMenu.classList.contains("hidden");
-    if (isHidden) {
-      paletteMenu.classList.remove("hidden");
-      paletteBtn.setAttribute("aria-expanded", "true");
-    } else {
-      paletteMenu.classList.add("hidden");
+    const isOpen = paletteMenu.classList.contains("is-open");
+
+    if (isOpen) {
+      // 关闭动画
+      paletteMenu.classList.remove("is-open");
+      paletteMenu.classList.add("is-closing");
       paletteBtn.setAttribute("aria-expanded", "false");
+      if (_paletteCloseTimer) clearTimeout(_paletteCloseTimer);
+      _paletteCloseTimer = setTimeout(() => {
+        paletteMenu?.classList.remove("is-closing");
+      }, closeMs);
+    } else {
+      // 打开动画
+      if (_paletteCloseTimer) {
+        clearTimeout(_paletteCloseTimer);
+        _paletteCloseTimer = null;
+      }
+      paletteMenu.classList.remove("is-closing");
+      paletteMenu.classList.add("is-open");
+      paletteBtn.setAttribute("aria-expanded", "true");
     }
   });
 
-  // 选择某套配色：设置 palette，并按该配色的明暗归类自动切换 data-theme。
   paletteMenu.querySelectorAll<HTMLButtonElement>(".palette-option").forEach(
     option => {
       option.addEventListener("click", () => {
         paletteValue = option.dataset.palette ?? "";
         persistPalette();
 
-        // data-mode 指明该配色属于浅色系还是深色系，选中后自动切到对应明暗。
         const mode = option.dataset.mode;
         if (mode === LIGHT || mode === DARK) {
           themeValue = mode;
@@ -112,19 +126,26 @@ function setupPalette(): void {
   );
 }
 
-// 关闭配色菜单（供 document 级监听调用；实时查询当前 DOM 中的菜单）。
 function closePaletteMenu(): void {
   const btn = document.querySelector("#palette-btn");
-  const menu = document.querySelector("#palette-menu");
-  menu?.classList.add("hidden");
-  btn?.setAttribute("aria-expanded", "false");
+  const menu = document.querySelector<HTMLElement>("#palette-menu");
+  if (!menu) return;
+  if (menu.classList.contains("is-open")) {
+    menu.classList.remove("is-open");
+    menu.classList.add("is-closing");
+    btn?.setAttribute("aria-expanded", "false");
+    if (_paletteCloseTimer) clearTimeout(_paletteCloseTimer);
+    _paletteCloseTimer = setTimeout(() => {
+      menu?.classList.remove("is-closing");
+    }, 160);
+  }
 }
 
-// 点击菜单外部区域关闭菜单（仅绑定一次）。
+// 点击外部关闭（仅绑定一次）
 document.addEventListener("click", event => {
   const btn = document.querySelector("#palette-btn");
   const menu = document.querySelector("#palette-menu");
-  if (!menu || menu.classList.contains("hidden")) return;
+  if (!menu || !menu.classList.contains("is-open")) return;
   if (
     !menu.contains(event.target as Node) &&
     !btn?.contains(event.target as Node)
@@ -133,18 +154,15 @@ document.addEventListener("click", event => {
   }
 });
 
-// Esc 键关闭菜单（仅绑定一次）。
+// Esc 关闭（仅绑定一次）
 document.addEventListener("keydown", event => {
   if (event.key === "Escape") closePaletteMenu();
 });
 
 setup();
 
-// Re-run after View Transitions navigation.
 document.addEventListener("astro:after-swap", setup);
 
-// Carry the theme-color value across View Transitions to prevent the
-// Android navigation bar from flashing during page transitions.
 document.addEventListener("astro:before-swap", event => {
   const color = document
     .querySelector("meta[name='theme-color']")
@@ -156,7 +174,6 @@ document.addEventListener("astro:before-swap", event => {
   }
 });
 
-// Sync with OS-level dark/light preference changes.
 window
   .matchMedia("(prefers-color-scheme: dark)")
   .addEventListener("change", ({ matches }) => {

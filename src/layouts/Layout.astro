@@ -238,6 +238,30 @@ const rssHref = getRelativeLocaleUrl(
                 }
 
                 /**
+                 * 把不蒜子注入的纯数字文本拆成单个 t-digit span，
+                 * 最后两位加 data-stagger 做错峰翻牌动画。
+                 */
+                function splitDigits(el) {
+                  var text = (el.textContent || "").trim();
+                  if (!/^\d+$/.test(text)) return; // 非纯数字不处理
+                  el.classList.remove("is-animating");
+                  el.innerHTML = "";
+                  var chars = text.split("");
+                  for (var i = 0; i < chars.length; i++) {
+                    var span = document.createElement("span");
+                    span.className = "t-digit";
+                    span.textContent = chars[i];
+                    // 最后两位加 stagger
+                    if (i === chars.length - 2) span.setAttribute("data-stagger", "1");
+                    else if (i === chars.length - 1) span.setAttribute("data-stagger", "2");
+                    el.appendChild(span);
+                  }
+                  // 强制 reflow 再启动动画
+                  void el.offsetWidth;
+                  el.classList.add("is-animating");
+                }
+
+                /**
                  * 标记为就绪状态：真实数据已显示
                  */
                 function markReady() {
@@ -246,6 +270,9 @@ const rssHref = getRelativeLocaleUrl(
                   isOffline = false;
                   stopWatchdog();
                   stopRetry();
+                  // 给 UV/PV 数字做翻牌动画
+                  if (uvEl) splitDigits(uvEl);
+                  if (pvEl) splitDigits(pvEl);
                 }
 
                 /**

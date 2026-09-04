@@ -133,11 +133,12 @@ const isWorksActive = isActive("/tags") || isActive("/works");
             <div
               id="works-menu"
               class:list={[
-                "works-menu hidden",
+                "works-menu t-dropdown",
                 // 桌面端浮层：绝对定位小卡片；移动端内联展开、居中
                 "sm:border-border sm:bg-background/95 sm:absolute sm:end-1/2 sm:z-50 sm:mt-2 sm:w-32 sm:translate-x-1/2 sm:rounded-md sm:border sm:p-1 sm:shadow-lg sm:backdrop-blur-md",
                 "mt-1 flex flex-col gap-1",
               ]}
+              data-origin="top-center"
               role="menu"
               aria-labelledby="works-btn"
             >
@@ -229,14 +230,20 @@ const isWorksActive = isActive("/tags") || isActive("/works");
             <li class="col-span-1 flex items-center justify-center">
               <button
                 id="theme-btn"
-                class="focus-outline hover:[&>svg]:stroke-accent relative size-12 p-4 sm:size-8"
+                class="focus-outline hover:[&>.t-icon-swap]:stroke-accent relative size-12 p-4 sm:size-8"
                 title={t.a11y.toggleTheme}
                 aria-label="auto"
                 aria-live="polite"
               >
-                {/* 浅色模式显示“小印章”，深色模式显示“月亮”，两者交叉淡入淡出 */}
-                <IconSeal class="absolute top-[50%] left-[50%] translate-[-50%] scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
-                <IconMoon class="absolute top-[50%] left-[50%] translate-[-50%] scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
+                {/* Icon swap 容器：两个图标交叉淡入淡出，带 blur + scale 过渡 */}
+                <span
+                  id="theme-icon-swap"
+                  class="t-icon-swap absolute top-[50%] left-[50%] size-6 -translate-x-1/2 -translate-y-1/2"
+                  data-state="a"
+                >
+                  <IconSeal class="t-icon" data-icon="a" />
+                  <IconMoon class="t-icon" data-icon="b" />
+                </span>
               </button>
             </li>
           )
@@ -257,7 +264,8 @@ const isWorksActive = isActive("/tags") || isActive("/works");
             </button>
             <div
               id="palette-menu"
-              class="border-border bg-background absolute end-0 z-50 mt-2 hidden w-40 rounded-md border p-2 shadow-lg"
+              class="border-border bg-background t-dropdown absolute end-0 z-50 mt-2 w-40 rounded-md border p-2 shadow-lg"
+              data-origin="top-right"
               role="menu"
               aria-labelledby="palette-btn"
             >
@@ -388,11 +396,21 @@ const isWorksActive = isActive("/tags") || isActive("/works");
     });
   }
 
-  // 关闭“作品集”下拉，并复位箭头方向与 aria 状态。
+  // 关闭"作品集"下拉：用 t-dropdown 的 is-closing 做关闭动画，
+  // --dropdown-close-dur 后再彻底隐藏。
+  let _worksCloseTimer: ReturnType<typeof setTimeout> | null = null;
   function closeWorksMenu() {
     const btn = document.querySelector("#works-btn");
-    const menu = document.querySelector("#works-menu");
-    menu?.classList.add("hidden");
+    const menu = document.querySelector<HTMLElement>("#works-menu");
+    if (!menu) return;
+    if (menu.classList.contains("is-open")) {
+      menu.classList.remove("is-open");
+      menu.classList.add("is-closing");
+      if (_worksCloseTimer) clearTimeout(_worksCloseTimer);
+      _worksCloseTimer = setTimeout(() => {
+        menu?.classList.remove("is-closing");
+      }, 160);
+    }
     btn?.setAttribute("aria-expanded", "false");
     btn?.querySelector(".works-caret")?.classList.remove("rotate-180");
   }
@@ -404,12 +422,31 @@ const isWorksActive = isActive("/tags") || isActive("/works");
     const caret = btn?.querySelector(".works-caret");
     if (!btn || !menu) return;
 
+    const closeMs = 160; // --dropdown-close-dur + 10ms 余量
+
     btn.addEventListener("click", event => {
       event.stopPropagation();
-      const willOpen = menu.classList.contains("hidden");
-      menu.classList.toggle("hidden");
-      btn.setAttribute("aria-expanded", willOpen ? "true" : "false");
-      caret?.classList.toggle("rotate-180", willOpen);
+      const isOpen = menu.classList.contains("is-open");
+
+      if (isOpen) {
+        menu.classList.remove("is-open");
+        menu.classList.add("is-closing");
+        btn.setAttribute("aria-expanded", "false");
+        caret?.classList.remove("rotate-180");
+        if (_worksCloseTimer) clearTimeout(_worksCloseTimer);
+        _worksCloseTimer = setTimeout(() => {
+          menu?.classList.remove("is-closing");
+        }, closeMs);
+      } else {
+        if (_worksCloseTimer) {
+          clearTimeout(_worksCloseTimer);
+          _worksCloseTimer = null;
+        }
+        menu.classList.remove("is-closing");
+        menu.classList.add("is-open");
+        btn.setAttribute("aria-expanded", "true");
+        caret?.classList.add("rotate-180");
+      }
     });
   }
 
@@ -428,7 +465,7 @@ const isWorksActive = isActive("/tags") || isActive("/works");
     document.addEventListener("click", event => {
       const menu = document.querySelector("#works-menu");
       const btn = document.querySelector("#works-btn");
-      if (!menu || menu.classList.contains("hidden")) return;
+      if (!menu || !menu.classList.contains("is-open")) return;
       const target = event.target as Node;
       if (!menu.contains(target) && !btn?.contains(target)) closeWorksMenu();
     });
