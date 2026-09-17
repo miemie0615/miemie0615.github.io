@@ -12,6 +12,23 @@
     scrollbar-width: auto;
     scrollbar-color: var(--color-muted) transparent;
   }
+  html,
+  body {
+    /* 禁用移动端点击闪黑，避免突兀的默认高亮 */
+    -webkit-tap-highlight-color: transparent;
+    /* 所有可点击元素禁用移动端双击缩放延迟 */
+  }
+  a,
+  button,
+  [role="button"],
+  label,
+  summary {
+    touch-action: manipulation;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    /* 平衡标题换行，避免末尾孤行 */
+    text-wrap: balance;
+  }
   a,
   button,
   #main-content {
@@ -236,7 +253,13 @@
    0.3s 过渡，反馈克制不浮夸。底色/阴影用主题变量，深浅自动适配。
    ============================================================ */
 @utility ink-card {
-  @apply rounded-lg border border-transparent px-4 py-3 transition-all duration-300;
+  @apply rounded-lg border border-transparent px-4 py-3;
+  /* 仅过渡实际会变化的属性，避免 transition: all 触发布局重计算 */
+  transition:
+    border-color 0.3s ease,
+    background-color 0.3s ease,
+    box-shadow 0.3s ease,
+    transform 0.3s ease;
 }
 .ink-card:hover {
   border-color: color-mix(in srgb, var(--border) 80%, transparent);
@@ -582,4 +605,98 @@ html[data-theme="dark"] .sakura-petal svg {
 /* 小屏（<640px）：花瓣数量减半，降低设备压力 */
 @media (max-width: 640px) {
   .sakura-bg::after { /* no-op, 真正的数量由 JS 控制 */ }
+}
+
+/* ============================================================
+   Scroll Reveal 入场动画（skill 推荐 Subtle tier：y:12px, 350ms）
+   ------------------------------------------------------------
+   设计系统参考：Motion-Driven / Scroll Reveal（Subtle tier）
+   纯 IntersectionObserver，零依赖，不引入 GSAP。
+   用法：
+     <div class="reveal">...</div>              ← 单个元素淡入上移
+     <ul class="reveal-stagger">               ← 子元素依次入场
+       <li class="reveal-child">...</li>       ← 子元素（自动 stagger 0.04s）
+     </ul>
+   完全尊重 prefers-reduced-motion（直接显示，不隐藏初始状态）。
+   ============================================================ */
+
+/* 默认隐藏：opacity:0 + 轻微下移 12px（克制，不是大幅 slide） */
+.reveal,
+.reveal-child {
+  opacity: 0;
+  transform: translateY(12px);
+  transition:
+    opacity 0.35s ease-out,
+    transform 0.35s ease-out;
+  will-change: opacity, transform;
+}
+
+/* 入场：完全显现 + 回正位置 */
+.reveal.is-visible,
+.reveal-child.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Stagger 模式：给每个子元素依次加 delay */
+.reveal-stagger {
+  /* 容器本身不需要 transform，由子元素处理 */
+}
+.reveal-stagger .reveal-child {
+  /* JS 会动态写入 --stagger-delay */
+  transition-delay: var(--stagger-delay, 0ms);
+}
+
+/* 减少动画偏好：直接显示，不做任何隐藏/位移 */
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal-child {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
+
+/* ============================================================
+   增强 ink-card hover：微浮起 + 阴影层级加深
+   ------------------------------------------------------------
+   原版只有边框变化 + 背景淡色 + 微弱阴影。
+   增强后：加 translateY(-2px) 微浮起，阴影加深到 16px blur。
+   保持克制（只有 2px 位移），不破坏国风留白气质。
+   ============================================================ */
+.ink-card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 2px 8px -4px color-mix(in srgb, var(--foreground) 10%, transparent),
+    0 8px 24px -12px color-mix(in srgb, var(--foreground) 20%, transparent);
+}
+
+/* ============================================================
+   导航栏滚动效果：滚动 > 40px 时背景微模糊 + 底部分界线加深
+   ------------------------------------------------------------
+   用法：Header 外层容器 data-nav 自动检测并加 .is-scrolled 类。
+   效果极轻量：只增强已有 nav-hairline 的可见度，不加额外阴影。
+   ============================================================ */
+[data-nav].is-scrolled {
+  background-color: color-mix(
+    in srgb,
+    var(--background) 80%,
+    transparent
+  );
+  backdrop-filter: saturate(1.4) blur(4px);
+  -webkit-backdrop-filter: saturate(1.4) blur(4px);
+  transition:
+    background-color 0.3s ease,
+    backdrop-filter 0.3s ease;
+}
+[data-nav].is-scrolled::after {
+  opacity: 1;
+}
+
+/* 减少动画偏好：导航栏滚动时不做背景模糊 */
+@media (prefers-reduced-motion: reduce) {
+  [data-nav].is-scrolled {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
 }

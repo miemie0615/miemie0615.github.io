@@ -165,6 +165,7 @@ const ogImage = ogImageUrl
             alt={title}
             widths={[640, 1024, 1600]}
             sizes="(max-width: 768px) 100vw, 768px"
+            priority={true}
             class="border-border mb-6 aspect-video w-full rounded-lg border object-cover"
           />
         )
@@ -174,6 +175,8 @@ const ogImage = ogImageUrl
           <img
             src={heroSrc}
             alt={title}
+            width={16}
+            height={9}
             loading="eager"
             decoding="async"
             class="border-border mb-6 aspect-video w-full rounded-lg border object-cover"
@@ -355,7 +358,7 @@ const ogImage = ogImageUrl
       closeButton.type = "button";
       closeButton.setAttribute("aria-label", "Close image preview");
       closeButton.className =
-        "absolute end-4 top-4 rounded p-2 text-3xl leading-none text-white";
+        "absolute end-4 top-4 rounded p-2 text-3xl leading-none text-white focus-visible:outline-2 focus-visible:outline-dashed focus-visible:outline-white focus-visible:outline-offset-2";
       closeButton.innerHTML = "&#10005;";
       closeButton.addEventListener("click", close);
 

@@ -75,37 +75,103 @@ function setup(): void {
 // 配色菜单关闭计时器（用于 is-closing 动画后彻底隐藏）
 let _paletteCloseTimer: ReturnType<typeof setTimeout> | null = null;
 
-// 国风配色选择器：使用 t-dropdown 的 is-open/is-closing 做过渡
+// 获取 palette 菜单中所有可见 menuitem
+function getPaletteItems(): HTMLElement[] {
+  const menu = document.querySelector<HTMLElement>("#palette-menu");
+  if (!menu) return [];
+  return Array.from(
+    menu.querySelectorAll<HTMLElement>('[role="menuitem"]')
+  ).filter(el => !el.hasAttribute("hidden") && el.offsetParent !== null);
+}
+
+function openPaletteMenu(focusFirst = false) {
+  const btn = document.querySelector<HTMLButtonElement>("#palette-btn");
+  const menu = document.querySelector<HTMLElement>("#palette-menu");
+  if (!btn || !menu) return;
+  if (_paletteCloseTimer) {
+    clearTimeout(_paletteCloseTimer);
+    _paletteCloseTimer = null;
+  }
+  menu.classList.remove("is-closing");
+  menu.classList.add("is-open");
+  btn.setAttribute("aria-expanded", "true");
+  if (focusFirst) {
+    const items = getPaletteItems();
+    items[0]?.focus();
+  }
+}
+
+function closePaletteMenu(): void {
+  const btn = document.querySelector("#palette-btn");
+  const menu = document.querySelector<HTMLElement>("#palette-menu");
+  if (!menu) return;
+  if (menu.classList.contains("is-open")) {
+    menu.classList.remove("is-open");
+    menu.classList.add("is-closing");
+    btn?.setAttribute("aria-expanded", "false");
+    if (_paletteCloseTimer) clearTimeout(_paletteCloseTimer);
+    _paletteCloseTimer = setTimeout(() => {
+      menu?.classList.remove("is-closing");
+    }, 160);
+  }
+}
+
+// 国风配色选择器：使用 t-dropdown 的 is-open/is-closing 做过渡 + 键盘导航
 function setupPalette(): void {
   const paletteBtn =
     document.querySelector<HTMLButtonElement>("#palette-btn");
   const paletteMenu = document.querySelector<HTMLElement>("#palette-menu");
   if (!paletteBtn || !paletteMenu) return;
 
-  const closeMs = 160; // --dropdown-close-dur + 余量
-
   paletteBtn.addEventListener("click", event => {
     event.stopPropagation();
     const isOpen = paletteMenu.classList.contains("is-open");
-
     if (isOpen) {
-      // 关闭动画
-      paletteMenu.classList.remove("is-open");
-      paletteMenu.classList.add("is-closing");
-      paletteBtn.setAttribute("aria-expanded", "false");
-      if (_paletteCloseTimer) clearTimeout(_paletteCloseTimer);
-      _paletteCloseTimer = setTimeout(() => {
-        paletteMenu?.classList.remove("is-closing");
-      }, closeMs);
+      closePaletteMenu();
+      paletteBtn.focus();
     } else {
-      // 打开动画
-      if (_paletteCloseTimer) {
-        clearTimeout(_paletteCloseTimer);
-        _paletteCloseTimer = null;
-      }
-      paletteMenu.classList.remove("is-closing");
-      paletteMenu.classList.add("is-open");
-      paletteBtn.setAttribute("aria-expanded", "true");
+      openPaletteMenu();
+    }
+  });
+
+  // trigger 上 ArrowDown 打开菜单
+  paletteBtn.addEventListener("keydown", e => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      openPaletteMenu(true);
+    }
+  });
+
+  // 键盘导航：Arrow ↓/↑ 切换，Enter/Space 激活，Home/End，Esc 关闭并聚焦回 trigger
+  paletteMenu.addEventListener("keydown", (e: KeyboardEvent) => {
+    const items = getPaletteItems();
+    if (items.length === 0) return;
+    const currentIdx = items.indexOf(document.activeElement as HTMLElement);
+
+    switch (e.key) {
+      case "ArrowDown":
+        e.preventDefault();
+        if (currentIdx === -1) openPaletteMenu(true);
+        else items[(currentIdx + 1) % items.length].focus();
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        if (currentIdx === -1) openPaletteMenu(true);
+        else items[(currentIdx - 1 + items.length) % items.length].focus();
+        break;
+      case "Home":
+        e.preventDefault();
+        items[0].focus();
+        break;
+      case "End":
+        e.preventDefault();
+        items[items.length - 1].focus();
+        break;
+      case "Escape":
+        e.preventDefault();
+        closePaletteMenu();
+        paletteBtn.focus();
+        break;
     }
   });
 
@@ -124,21 +190,6 @@ function setupPalette(): void {
       });
     }
   );
-}
-
-function closePaletteMenu(): void {
-  const btn = document.querySelector("#palette-btn");
-  const menu = document.querySelector<HTMLElement>("#palette-menu");
-  if (!menu) return;
-  if (menu.classList.contains("is-open")) {
-    menu.classList.remove("is-open");
-    menu.classList.add("is-closing");
-    btn?.setAttribute("aria-expanded", "false");
-    if (_paletteCloseTimer) clearTimeout(_paletteCloseTimer);
-    _paletteCloseTimer = setTimeout(() => {
-      menu?.classList.remove("is-closing");
-    }, 160);
-  }
 }
 
 // 点击外部关闭（仅绑定一次）

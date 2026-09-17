@@ -58,7 +58,7 @@ export default {
     archivesDesc: "All the articles I've archived.",
 
     searchTitle: "Search",
-    searchDesc: "Search any article ...",
+    searchDesc: "Search any article …",
 
     worksTitle: "作品集",
     worksDesc: "聚合所有原创设计作品，按分类浏览",
@@ -69,7 +69,7 @@ export default {
     closeMenu: "Close menu",
     toggleTheme: "Toggle theme",
     togglePalette: "切换配色",
-    searchPlaceholder: "Search posts...",
+    searchPlaceholder: "Search posts …",
     noResults: "No results found",
     goToPreviousPage: "Go to previous page",
     goToNextPage: "Go to next page",

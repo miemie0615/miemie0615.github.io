@@ -10,27 +10,27 @@
   --font-app: var(--font-google-sans-code);
 }
 
-/* Light theme values */
+/* Light theme values — 默认切换到国风基调：米白底 + 墨色文字 + 朱砂红强调 */
 :root,
 [data-theme="light"] {
-  --background: #fdfdfd;
-  --foreground: #282728;
-  --accent: #006cac;
-  --accent-foreground: #ffffff;
-  --muted: #e6e6e6;
-  --muted-foreground: #6b7280;
-  --border: #ece9e9;
+  --background: #f7f3ea;
+  --foreground: #2b2622;
+  --accent: #a8322d;
+  --accent-foreground: #fbf7ef;
+  --muted: #eae3d4;
+  --muted-foreground: #6d6457;
+  --border: #ddd3bf;
 }
 
-/* Dark theme values */
+/* Dark theme values — 深墨底 + 暖色文字 + 暖朱砂强调 */
 [data-theme="dark"] {
-  --background: #212737;
-  --foreground: #eaedf3;
-  --accent: #ff6b01;
-  --accent-foreground: #ffffff;
-  --muted: #343f60;
-  --muted-foreground: #afb9ca;
-  --border: #ab4b08;
+  --background: #2a2620;
+  --foreground: #ece3d2;
+  --accent: #d98c6a;
+  --accent-foreground: #241f19;
+  --muted: #3b352c;
+  --muted-foreground: #b3a892;
+  --border: #4a4234;
 }
 
 /* ============================================================
@@ -53,7 +53,7 @@
   --accent: #a8322d;
   --accent-foreground: #fbf7ef;
   --muted: #eae3d4;
-  --muted-foreground: #7c7263;
+  --muted-foreground: #6d6457;  /* 微调加深 → WCAG AA 4.27 → 5.25 */
   --border: #ddd3bf;
 }
 [data-palette="paper"].dark {
@@ -73,7 +73,7 @@
   --accent: #2f6f66;
   --accent-foreground: #f2f7f5;
   --muted: #d7e2df;
-  --muted-foreground: #5f716d;
+  --muted-foreground: #53635f;  /* 微调加深 → WCAG AA 4.47 → 5.48 */
   --border: #c3d3ce;
 }
 [data-palette="ink"].dark {
@@ -93,7 +93,7 @@
   --accent: #8a5a83;
   --accent-foreground: #faf5f9;
   --muted: #e8dce7;
-  --muted-foreground: #7a6b78;
+  --muted-foreground: #6b5e69;  /* 微调加深 → WCAG AA 4.45 → 5.45 */
   --border: #d9c9d7;
 }
 [data-palette="lotus"].dark {
@@ -110,10 +110,10 @@
 [data-palette="celadon"] {
   --background: #edf3f0;
   --foreground: #22302c;
-  --accent: #3f7d76;
+  --accent: #376e67;            /* 微调加深 → WCAG AA 4.43 → 5.44 */
   --accent-foreground: #f2f8f6;
   --muted: #dae7e2;
-  --muted-foreground: #61756f;
+  --muted-foreground: #556661;  /* 微调加深 → WCAG AA 4.36 → 5.40 */
   --border: #c6d8d2;
 }
 [data-palette="celadon"].dark {

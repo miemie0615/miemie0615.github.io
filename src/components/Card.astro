@@ -26,7 +26,7 @@ const heroSrc =
       : undefined;
 ---
 
-<li class="ink-card my-6 list-none">
+<li class="ink-card reveal reveal-child my-6 list-none">
   {
     /* 有封面图时展示：轻微圆角 + 细浅边框，hover 图片微放大（scale 1.02） */
     heroImage && (
@@ -48,6 +48,8 @@ const heroSrc =
           <img
             src={heroSrc}
             alt={title}
+            width={16}
+            height={9}
             loading="lazy"
             decoding="async"
             class="aspect-[16/9] w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"

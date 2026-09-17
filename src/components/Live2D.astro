@@ -246,7 +246,34 @@
       return;
     }
 
-    hidden = localStorage.getItem("live2d_hidden") === "1";
+    // 尊重 prefers-reduced-motion：不启动 RAF 循环和连续动画
+    if (prefersReducedMotion()) {
+      var scene = document.querySelector(".live2d-scene");
+      var canvas = document.getElementById("live2dcanvas");
+      if (scene) scene.classList.add("live2d-reduced-motion");
+      if (canvas) {
+        canvas.setAttribute("aria-label", "静态 2D 形象展示（已禁用动画）");
+        canvas.setAttribute("role", "img");
+      }
+      // 仍然允许切换显示/隐藏，但不启动模型动画
+      hidden = localStorage.getItem("live2d_hidden") === "1";
+      if (hidden) {
+        var wrap2 = document.querySelector(".live2d-scene");
+        var btn2 = document.getElementById("live2d-toggle");
+        var icon2 = document.getElementById("live2d-toggle-icon");
+        if (wrap2) wrap2.classList.add("live2d-hidden");
+        if (btn2) btn2.classList.add("live2d-toggle-collapsed");
+        if (icon2) icon2.setAttribute("d", "M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z");
+      }
+      // 绑定显示/隐藏按钮
+      var btnToggle = document.getElementById("live2d-toggle");
+      if (btnToggle) {
+        btnToggle.addEventListener("click", function () {
+          setHidden(!hidden);
+        });
+      }
+      return;
+    }
     if (hidden) {
       // 从 localStorage 恢复隐藏状态
       var wrap = document.querySelector(".live2d-scene");
@@ -313,14 +340,32 @@
   bottom: 0;
   z-index: 9999;
   user-select: none;
-  transition: transform 0.35s ease, opacity 0.35s ease;
+  transition: opacity 0.35s ease;
   pointer-events: auto;
+  transform: translate3d(0, 0, 0);
 }
 
 .live2d-scene.live2d-hidden {
   opacity: 0;
-  transform: scale(0.5) translateY(100px);
   pointer-events: none;
+  transform: translate3d(0, 100px, 0) scale(0.5);
+}
+
+/* reduced-motion 模式：完全禁用动画和过渡 */
+.live2d-scene.live2d-reduced-motion {
+  transition: none !important;
+}
+.live2d-scene.live2d-reduced-motion .live2d-canvas {
+  /* 隐藏 WebGL canvas（无法渲染静态帧），仅保留布局占位 */
+  visibility: hidden;
+}
+@media (prefers-reduced-motion: reduce) {
+  .live2d-scene {
+    transition: none !important;
+  }
+  .live2d-toggle {
+    transition: none !important;
+  }
 }
 
 /* canvas：官方 core 内部用 WebGL 渲染，必须设置 width/height（JS 动态控制）
@@ -388,7 +433,7 @@
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 8px color-mix(in srgb, var(--foreground) 12%, transparent);
-  transition: transform 0.2s ease, left 0.35s ease, bottom 0.35s ease, opacity 0.35s ease;
+  transition: transform 0.2s ease;
   z-index: 10000;           /* 比 scene 的 9999 更高，确保永远可点 */
 }
 .live2d-toggle:hover { transform: scale(1.12); }
@@ -397,12 +442,12 @@
 .live2d-toggle.live2d-toggle-collapsed {
   width: 32px;
   height: 32px;
-  left: 30px;               /* scene 原来的 left */
-  bottom: 0;                /* scene 原来的 bottom */
+  /* 用 transform 做位置位移，避免 left/bottom 触发布局 */
+  transform: translate(-256px, -246px) scale(1);
   opacity: 0.85;
 }
 .live2d-toggle.live2d-toggle-collapsed:hover {
-  transform: scale(1.15);
+  transform: translate(-256px, -246px) scale(1.15);
   opacity: 1;
 }
 

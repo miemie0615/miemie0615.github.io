@@ -52,12 +52,13 @@ const isWorksActive = isActive("/tags") || isActive("/works");
 <a
   id="skip-to-content"
   href="#main-content"
-  class="bg-background text-accent absolute inset-s-16 -top-full z-50 px-3 py-2 backdrop-blur-lg transition-all focus:top-4"
+  class="bg-background text-accent absolute inset-s-16 -top-full z-50 px-3 py-2 backdrop-blur-lg transition-[top,background-color,color,backdrop-filter] duration-200 focus:top-4"
 >
   {t.a11y.skipToContent}
 </a>
 
 <header
+  data-nav
   class="nav-hairline bg-background/70 sticky top-0 z-40 w-full backdrop-blur-md backdrop-saturate-150"
 >
   <div
@@ -232,7 +233,7 @@ const isWorksActive = isActive("/tags") || isActive("/works");
                 id="theme-btn"
                 class="focus-outline hover:[&>.t-icon-swap]:stroke-accent relative size-12 p-4 sm:size-8"
                 title={t.a11y.toggleTheme}
-                aria-label="auto"
+                aria-label={t.a11y.toggleTheme}
                 aria-live="polite"
               >
                 {/* Icon swap 容器：两个图标交叉淡入淡出，带 blur + scale 过渡 */}
@@ -415,37 +416,104 @@ const isWorksActive = isActive("/tags") || isActive("/works");
     btn?.querySelector(".works-caret")?.classList.remove("rotate-180");
   }
 
-  // 绑定“作品集”下拉的点击展开/收起。
+  // 绑定"作品集"下拉的点击展开/收起 + 完整键盘导航。
   function toggleWorksMenu() {
     const btn = document.querySelector<HTMLButtonElement>("#works-btn");
     const menu = document.querySelector<HTMLElement>("#works-menu");
     const caret = btn?.querySelector(".works-caret");
     if (!btn || !menu) return;
 
-    const closeMs = 160; // --dropdown-close-dur + 10ms 余量
+    const closeMs = 160; // --dropdown-close-dur + 余量
+
+    // 获取所有可见 menuitem
+    function getItems(): HTMLElement[] {
+      return Array.from(
+        menu.querySelectorAll<HTMLElement>('[role="menuitem"]')
+      ).filter(el => !el.hasAttribute("hidden") && el.offsetParent !== null);
+    }
+
+    function openMenu(focusFirst = false) {
+      if (_worksCloseTimer) {
+        clearTimeout(_worksCloseTimer);
+        _worksCloseTimer = null;
+      }
+      menu.classList.remove("is-closing");
+      menu.classList.add("is-open");
+      btn.setAttribute("aria-expanded", "true");
+      caret?.classList.add("rotate-180");
+      if (focusFirst) {
+        const items = getItems();
+        items[0]?.focus();
+      }
+    }
+
+    function closeMenu() {
+      if (!menu.classList.contains("is-open")) return;
+      menu.classList.remove("is-open");
+      menu.classList.add("is-closing");
+      btn.setAttribute("aria-expanded", "false");
+      caret?.classList.remove("rotate-180");
+      if (_worksCloseTimer) clearTimeout(_worksCloseTimer);
+      _worksCloseTimer = setTimeout(() => {
+        menu?.classList.remove("is-closing");
+      }, closeMs);
+    }
 
     btn.addEventListener("click", event => {
       event.stopPropagation();
       const isOpen = menu.classList.contains("is-open");
-
       if (isOpen) {
-        menu.classList.remove("is-open");
-        menu.classList.add("is-closing");
-        btn.setAttribute("aria-expanded", "false");
-        caret?.classList.remove("rotate-180");
-        if (_worksCloseTimer) clearTimeout(_worksCloseTimer);
-        _worksCloseTimer = setTimeout(() => {
-          menu?.classList.remove("is-closing");
-        }, closeMs);
+        closeMenu();
+        btn.focus();
       } else {
-        if (_worksCloseTimer) {
-          clearTimeout(_worksCloseTimer);
-          _worksCloseTimer = null;
-        }
-        menu.classList.remove("is-closing");
-        menu.classList.add("is-open");
-        btn.setAttribute("aria-expanded", "true");
-        caret?.classList.add("rotate-180");
+        openMenu();
+      }
+    });
+
+    // 键盘导航：Arrow ↓/↑ 切换 menuitem，Enter/Space 激活，Esc 关闭并聚焦回 trigger
+    menu.addEventListener("keydown", (e: KeyboardEvent) => {
+      const items = getItems();
+      if (items.length === 0) return;
+      const currentIdx = items.indexOf(document.activeElement as HTMLElement);
+
+      switch (e.key) {
+        case "ArrowDown":
+          e.preventDefault();
+          if (currentIdx === -1) {
+            openMenu(true);
+          } else {
+            items[(currentIdx + 1) % items.length].focus();
+          }
+          break;
+        case "ArrowUp":
+          e.preventDefault();
+          if (currentIdx === -1) {
+            openMenu(true);
+          } else {
+            items[(currentIdx - 1 + items.length) % items.length].focus();
+          }
+          break;
+        case "Home":
+          e.preventDefault();
+          items[0].focus();
+          break;
+        case "End":
+          e.preventDefault();
+          items[items.length - 1].focus();
+          break;
+        case "Escape":
+          e.preventDefault();
+          closeMenu();
+          btn.focus();
+          break;
+      }
+    });
+
+    // trigger 上 ArrowDown 打开菜单
+    btn.addEventListener("keydown", (e: KeyboardEvent) => {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        openMenu(true);
       }
     });
   }
