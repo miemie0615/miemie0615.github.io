@@ -418,10 +418,14 @@ const isWorksActive = isActive("/tags") || isActive("/works");
 
   // 绑定"作品集"下拉的点击展开/收起 + 完整键盘导航。
   function toggleWorksMenu() {
-    const btn = document.querySelector<HTMLButtonElement>("#works-btn");
-    const menu = document.querySelector<HTMLElement>("#works-menu");
-    const caret = btn?.querySelector(".works-caret");
-    if (!btn || !menu) return;
+    const btnEl = document.querySelector<HTMLButtonElement>("#works-btn");
+    const menuEl = document.querySelector<HTMLElement>("#works-menu");
+    if (!btnEl || !menuEl) return;
+
+    // 用 non-null 断言让嵌套函数捕获到安全引用
+    const btn = btnEl;
+    const menu = menuEl;
+    const caret = btn.querySelector(".works-caret");
 
     const closeMs = 160; // --dropdown-close-dur + 余量
 

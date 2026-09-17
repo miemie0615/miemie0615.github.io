@@ -44,16 +44,18 @@ const items = await Promise.all(
   function setupAvatarGroup() {
     const group = document.querySelector(".t-avatar-group");
     if (!group) return;
-    const avatars = Array.from(group.querySelectorAll(".t-avatar"));
+    const avatars = Array.from(
+      group.querySelectorAll<HTMLElement>(".t-avatar")
+    );
     const cs = getComputedStyle(document.documentElement);
-    const num = (name, fb) => {
+    const num = (name: string, fb: number) => {
       const v = parseFloat(cs.getPropertyValue(name));
       return Number.isFinite(v) ? v : fb;
     };
-    const ease = (name, fb) =>
+    const ease = (name: string, fb: string) =>
       cs.getPropertyValue(name).trim() || fb;
 
-    function setShifts(activeIdx, phase) {
+    function setShifts(activeIdx: number | null, phase: "in" | "out") {
       const lift = num("--avatar-lift", -4);
       const falloff = num("--avatar-falloff", 0.45);
       const scale = num("--avatar-scale", 1.05);
